@@ -1,0 +1,1688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Moon: Beyond Our World — Interactive Lunar Exhibit</title>
+  <meta name="description" content="An immersive interactive educational exhibit exploring humanity's journey to the Moon — historic missions, lunar facts, and a knowledge quiz." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --midnight: #071426;
+      --navy: #102746;
+      --space: #1E4B78;
+      --moon-white: #F5F7FA;
+      --silver: #CBD5E1;
+      --electric: #62B6FF;
+      --electric-dim: rgba(98,182,255,0.12);
+      --electric-glow: rgba(98,182,255,0.35);
+      --card-bg: rgba(16,39,70,0.7);
+      --font: 'Manrope', sans-serif;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --transition: 0.35s cubic-bezier(0.4,0,0.2,1);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth;font-size:16px}
+    body{font-family:var(--font);background:var(--midnight);color:var(--moon-white);overflow-x:hidden;line-height:1.7}
+    ::selection{background:var(--electric);color:var(--midnight)}
+    img{display:block;width:100%;height:100%;object-fit:cover}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+    /* Stars canvas */
+    #stars-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.55}
+
+    /* Navbar */
+    #navbar{position:fixed;top:0;left:0;right:0;z-index:1000;padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between;background:rgba(7,20,38,.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(98,182,255,.1);transition:background var(--transition)}
+    #navbar.scrolled{background:rgba(7,20,38,.93)}
+    .nav-logo{font-size:.85rem;font-weight:800;letter-spacing:.15em;color:var(--electric);text-transform:uppercase;text-decoration:none;white-space:nowrap}
+    .nav-links{display:flex;gap:.25rem;list-style:none}
+    .nav-links a{font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--silver);text-decoration:none;padding:.4rem .9rem;border-radius:40px;transition:color var(--transition),background var(--transition)}
+    .nav-links a:hover,.nav-links a.active{color:var(--electric);background:var(--electric-dim)}
+    #nav-toggle{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px;background:none;border:none}
+    #nav-toggle span{display:block;width:24px;height:2px;background:var(--silver);border-radius:2px;transition:var(--transition)}
+    #nav-toggle.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+    #nav-toggle.open span:nth-child(2){opacity:0}
+    #nav-toggle.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+    @media(max-width:768px){
+      #nav-toggle{display:flex}
+      .nav-links{position:fixed;top:64px;left:0;right:0;flex-direction:column;background:rgba(7,20,38,.97);padding:1.5rem;gap:.5rem;transform:translateY(-120%);transition:transform var(--transition);border-bottom:1px solid var(--electric-dim)}
+      .nav-links.open{transform:translateY(0)}
+      .nav-links a{padding:.75rem 1rem;font-size:.9rem}
+    }
+
+    /* Sections */
+    section{position:relative;z-index:1}
+    .section-label{font-size:.72rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--electric);margin-bottom:1rem}
+    .section-title{font-size:clamp(2rem,5vw,3.5rem);font-weight:800;line-height:1.1;letter-spacing:-.02em;color:var(--moon-white);margin-bottom:1.25rem}
+    .section-subtitle{font-size:1.05rem;color:var(--silver);max-width:680px;line-height:1.8}
+    .reveal{opacity:0;transform:translateY(36px);transition:opacity .7s ease,transform .7s ease}
+    .reveal.visible{opacity:1;transform:translateY(0)}
+    .reveal-delay-1{transition-delay:.1s}
+    .reveal-delay-2{transition-delay:.2s}
+    .reveal-delay-3{transition-delay:.3s}
+    .reveal-delay-4{transition-delay:.4s}
+    .reveal-delay-5{transition-delay:.5s}
+    .container{max-width:1200px;margin:0 auto}
+
+    /* Hero */
+    #home{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:80px 2rem 7rem;position:relative;overflow:hidden}
+    .hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 70% at 50% 40%,#102746 0%,#071426 70%);z-index:0}
+    .hero-moon-wrap{position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);width:min(680px,88vw);height:min(680px,88vw);border-radius:50%;overflow:hidden;opacity:.25;z-index:0;filter:blur(1px)}
+    .hero-moon-wrap img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+    .hero-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);width:min(820px,100vw);height:min(820px,100vw);border-radius:50%;background:radial-gradient(circle,rgba(98,182,255,.07) 0%,transparent 60%);z-index:0;pointer-events:none}
+    .hero-content{position:relative;z-index:2;max-width:900px}
+    .hero-eyebrow{display:inline-flex;align-items:center;gap:.6rem;font-size:.72rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--electric);margin-bottom:1.5rem;padding:.4rem 1.2rem;border:1px solid rgba(98,182,255,.3);border-radius:40px;background:var(--electric-dim)}
+    .hero-eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--electric);animation:pulse 2s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.5)}}
+    .hero-title{font-size:clamp(2.8rem,8vw,6rem);font-weight:800;line-height:1.0;letter-spacing:-.03em;color:var(--moon-white);margin-bottom:1.5rem}
+    .hero-title span{background:linear-gradient(135deg,#ffffff,#62B6FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero-subtitle{font-size:clamp(1rem,2.5vw,1.2rem);font-weight:400;color:var(--silver);max-width:680px;margin:0 auto 1.75rem;line-height:1.8}
+    .hero-intro{font-size:.97rem;color:rgba(203,213,225,.7);max-width:620px;margin:0 auto 3rem;line-height:1.9}
+    .btn-primary{display:inline-flex;align-items:center;gap:.6rem;padding:1rem 2.5rem;font-family:var(--font);font-size:.92rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--midnight);background:linear-gradient(135deg,var(--electric),#9ad3ff);border:none;border-radius:50px;cursor:pointer;text-decoration:none;transition:transform var(--transition),box-shadow var(--transition)}
+    .btn-primary:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 12px 40px rgba(98,182,255,.45)}
+    .btn-primary svg{width:18px;height:18px;flex-shrink:0}
+    .scroll-indicator{position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:.5rem;z-index:2}
+    .scroll-indicator span{font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(203,213,225,.45)}
+    .scroll-mouse{width:24px;height:38px;border:2px solid rgba(203,213,225,.28);border-radius:12px;display:flex;justify-content:center;padding-top:6px}
+    .scroll-mouse-dot{width:4px;height:8px;background:var(--electric);border-radius:2px;animation:scroll-bounce 1.8s ease-in-out infinite}
+    @keyframes scroll-bounce{0%{transform:translateY(0);opacity:1}60%{transform:translateY(10px);opacity:.3}100%{transform:translateY(0);opacity:1}}
+
+    /* Timeline */
+    #timeline{padding:8rem 2rem 6rem;position:relative;background:transparent}
+    .timeline-header{text-align:center;max-width:800px;margin:0 auto 5rem}
+    .timeline-spine{position:relative;max-width:1160px;margin:0 auto}
+    .timeline-spine::before{content:'';position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:2px;background:linear-gradient(180deg,transparent,rgba(98,182,255,0.4) 4%,rgba(98,182,255,0.4) 96%,transparent);z-index:1}
+    @media(max-width:900px){.timeline-spine::before{left:32px}}
+
+    .timeline-entry{display:grid;grid-template-columns:1fr 140px 1fr;gap:1.5rem;margin-bottom:7.5rem;position:relative;align-items:center}
+    .timeline-entry.reverse .timeline-text{order:3}
+    .timeline-entry.reverse .timeline-node{order:2}
+    .timeline-entry.reverse .timeline-media-col{order:1}
+
+    .timeline-node{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6rem;z-index:5;text-align:center}
+    .timeline-dot{width:22px;height:22px;border-radius:50%;background:var(--electric);border:4px solid var(--midnight);box-shadow:0 0 18px var(--electric-glow),0 0 35px rgba(98,182,255,0.3);flex-shrink:0;transition:transform .3s ease,box-shadow .3s ease}
+    .timeline-entry:hover .timeline-dot{transform:scale(1.25);box-shadow:0 0 25px var(--electric),0 0 45px rgba(98,182,255,0.6)}
+    .timeline-date-label{font-size:.78rem;font-weight:800;letter-spacing:.12em;color:var(--electric);white-space:nowrap;text-transform:uppercase;background:rgba(7,20,38,0.85);padding:2px 8px;border-radius:12px;border:1px solid rgba(98,182,255,0.25)}
+
+    /* Rocket / Mission Image Styling with starry sky blending */
+    .timeline-media-col{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:visible;z-index:2}
+    .timeline-img-wrap{position:relative;width:100%;max-width:480px;border-radius:var(--radius);overflow:visible;cursor:pointer;background:radial-gradient(ellipse at center, rgba(16,39,70,0.6) 0%, rgba(7,20,38,0) 75%);display:flex;align-items:center;justify-content:center}
+    
+    /* Authentic Image: Hover Pop-Out with scale(1.18), blue glow, higher z-index, zero layout jump */
+    .timeline-img{width:100%;height:auto;max-height:360px;object-fit:cover;border-radius:var(--radius);transition:transform 0.4s cubic-bezier(0.2,0,0.2,1),box-shadow 0.4s ease,filter 0.4s ease;transform-origin:center center;filter:brightness(0.96) contrast(1.04);box-shadow:0 15px 40px rgba(0,0,0,0.55);mask-image:radial-gradient(ellipse 94% 94% at center, black 75%, transparent 100%);-webkit-mask-image:radial-gradient(ellipse 94% 94% at center, black 75%, transparent 100%)}
+    
+    .timeline-entry:hover .timeline-img,
+    .timeline-img-wrap:hover .timeline-img{
+      transform:scale(1.18);
+      filter:brightness(1.08) contrast(1.06);
+      box-shadow:0 25px 65px rgba(0,0,0,0.85),0 0 40px rgba(98,182,255,0.45);
+      z-index:20;
+      position:relative;
+    }
+    
+    .img-credit{font-size:.65rem;color:rgba(203,213,225,.55);margin-top:.6rem;text-align:center;line-height:1.4}
+    .img-credit a{color:var(--electric);text-decoration:none}
+    .img-credit a:hover{text-decoration:underline}
+
+    .timeline-text{padding:1.5rem 2rem;background:rgba(16,39,70,0.4);border:1px solid rgba(98,182,255,0.12);border-radius:var(--radius);backdrop-filter:blur(10px);transition:border-color var(--transition),box-shadow var(--transition);position:relative;z-index:2}
+    .timeline-entry:hover .timeline-text{border-color:rgba(98,182,255,0.3);box-shadow:0 10px 35px rgba(0,0,0,0.4)}
+    
+    .mission-badge{display:inline-flex;align-items:center;gap:.5rem;font-size:.66rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--electric);background:var(--electric-dim);border:1px solid rgba(98,182,255,.2);padding:.3rem .8rem;border-radius:40px;margin-bottom:.85rem}
+    .mission-title{font-size:clamp(1.5rem,3vw,2.2rem);font-weight:800;color:var(--moon-white);margin-bottom:.25rem;transition:color var(--transition);line-height:1.2}
+    .timeline-entry:hover .mission-title{color:var(--electric)}
+    .mission-agency{font-size:.78rem;font-weight:600;color:var(--silver);letter-spacing:.05em;margin-bottom:1.25rem;opacity:.8}
+    .mission-details{display:flex;flex-direction:column;gap:.7rem}
+    .detail-row{display:grid;grid-template-columns:72px 1fr;gap:.7rem;align-items:baseline}
+    .detail-label{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--electric);padding-top:.1rem}
+    .detail-value{font-size:.88rem;color:var(--silver);line-height:1.65}
+    .achievement-box{margin-top:1.25rem;padding:1rem 1.25rem;background:rgba(98,182,255,.07);border-left:3px solid var(--electric);border-radius:0 var(--radius-sm) var(--radius-sm) 0}
+    .achievement-box .detail-label{color:#9ad3ff;margin-bottom:.25rem}
+    .achievement-box .detail-value{color:rgba(203,213,225,.95);font-size:.86rem}
+    
+    /* Expandable Sources in timeline */
+    .mission-sources{margin-top:1.25rem;padding-top:.9rem;border-top:1px dashed rgba(98,182,255,0.2)}
+    .sources-toggle{background:none;border:none;color:var(--electric);font-family:var(--font);font-size:.72rem;font-weight:700;letter-spacing:.08em;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;padding:0;text-transform:uppercase;transition:color var(--transition)}
+    .sources-toggle:hover{color:#9ad3ff}
+    .sources-list{list-style:none;margin-top:.6rem;display:none;flex-direction:column;gap:.35rem}
+    .sources-list.open{display:flex}
+    .sources-list li{font-size:.74rem;color:rgba(203,213,225,0.75)}
+    .sources-list a{color:var(--electric);text-decoration:none;word-break:break-all}
+    .sources-list a:hover{text-decoration:underline}
+
+    @media(max-width:900px){
+      .timeline-entry{grid-template-columns:64px 1fr;grid-template-rows:auto auto;gap:1rem;margin-bottom:4.5rem}
+      .timeline-entry .timeline-node{order:1!important;align-items:flex-start;padding-top:.4rem}
+      .timeline-entry .timeline-media-col{order:2!important;grid-column:2;max-width:100%}
+      .timeline-entry .timeline-text{order:3!important;grid-column:2;padding:1.25rem}
+      .timeline-entry.reverse .timeline-media-col{order:2!important}
+      .timeline-img{max-height:280px}
+      .timeline-entry:hover .timeline-img,
+      .timeline-img-wrap:hover .timeline-img{transform:none;filter:none}
+    }
+
+    /* Facts */
+    #facts{padding:7rem 2rem;position:relative;background:transparent}
+    .facts-header{text-align:center;max-width:700px;margin:0 auto 4rem}
+    .facts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.2rem;max-width:1200px;margin:0 auto}
+    .fact-card{background:var(--card-bg);border:1px solid rgba(98,182,255,.1);border-radius:var(--radius);padding:1.75rem;cursor:default;transition:transform var(--transition),border-color var(--transition),box-shadow var(--transition);position:relative;overflow:hidden;backdrop-filter:blur(8px)}
+    .fact-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,var(--electric),transparent);opacity:0;transition:opacity var(--transition)}
+    .fact-card:hover{transform:translateY(-5px) scale(1.015);border-color:rgba(98,182,255,.35);box-shadow:0 16px 48px rgba(98,182,255,.12)}
+    .fact-card:hover::before{opacity:1}
+    .fact-card:nth-child(3n){background:rgba(30,75,120,.5)}
+    .fact-card:nth-child(5n){background:rgba(16,39,70,.9)}
+    .fact-number{font-size:.62rem;font-weight:700;letter-spacing:.18em;color:var(--electric);opacity:.6;margin-bottom:.7rem}
+    .fact-title{font-size:1rem;font-weight:700;color:var(--moon-white);margin-bottom:.7rem;line-height:1.3}
+    .fact-body{font-size:.85rem;color:var(--silver);line-height:1.75}
+
+    /* Quiz */
+    #quiz{padding:8rem 2rem;background:linear-gradient(180deg,var(--midnight) 0%,#071020 100%)}
+    .quiz-header{text-align:center;max-width:700px;margin:0 auto 4rem}
+    .quiz-container{max-width:780px;margin:0 auto}
+    .quiz-card{background:var(--card-bg);border:1px solid rgba(98,182,255,.15);border-radius:24px;padding:3rem;backdrop-filter:blur(12px);box-shadow:0 24px 80px rgba(0,0,0,.4);position:relative;overflow:hidden;transition:opacity .4s ease,transform .4s ease}
+    .quiz-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--electric),transparent);opacity:.5}
+    .quiz-progress-bar-wrap{margin-bottom:2rem}
+    .quiz-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}
+    .quiz-question-num{font-size:.7rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--electric)}
+    .quiz-score-display{font-size:.7rem;font-weight:600;color:var(--silver)}
+    .progress-track{height:4px;background:rgba(203,213,225,.1);border-radius:4px;overflow:hidden}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--electric),#9ad3ff);border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+    .quiz-question-text{font-size:clamp(1.05rem,2.5vw,1.28rem);font-weight:700;color:var(--moon-white);line-height:1.5;margin-bottom:2rem;min-height:4.5rem}
+    .quiz-options{display:flex;flex-direction:column;gap:.85rem;margin-bottom:2rem}
+    .quiz-option{display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;background:rgba(255,255,255,.04);border:1.5px solid rgba(203,213,225,.12);border-radius:var(--radius-sm);cursor:pointer;transition:all var(--transition);position:relative}
+    .quiz-option:hover:not(.locked){background:rgba(98,182,255,.08);border-color:rgba(98,182,255,.4)}
+    .quiz-option.selected{background:rgba(98,182,255,.1);border-color:var(--electric)}
+    .quiz-option.correct{background:rgba(34,197,94,.12);border-color:#22c55e}
+    .quiz-option.incorrect{background:rgba(239,68,68,.1);border-color:#ef4444}
+    .quiz-option.locked{cursor:default}
+    .option-letter{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(203,213,225,.2);display:flex;align-items:center;justify-content:center;font-size:.74rem;font-weight:700;color:var(--silver);flex-shrink:0;transition:all var(--transition)}
+    .quiz-option.selected .option-letter{background:var(--electric);border-color:var(--electric);color:var(--midnight)}
+    .quiz-option.correct .option-letter{background:#22c55e;border-color:#22c55e;color:#fff}
+    .quiz-option.incorrect .option-letter{background:#ef4444;border-color:#ef4444;color:#fff}
+    .option-text{font-size:.93rem;font-weight:500;color:var(--moon-white);line-height:1.45}
+    .quiz-feedback{display:none;padding:1rem 1.25rem;border-radius:var(--radius-sm);margin-bottom:1.5rem;font-size:.88rem;line-height:1.6;animation:fadeIn .3s ease}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+    .quiz-feedback.correct{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#86efac;display:block}
+    .quiz-feedback.incorrect{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);color:#fca5a5;display:block}
+    .quiz-feedback strong{display:block;margin-bottom:.35rem;font-size:.93rem}
+    .quiz-actions{display:flex;gap:1rem;flex-wrap:wrap}
+    .btn-quiz{padding:.875rem 2rem;font-family:var(--font);font-size:.86rem;font-weight:700;letter-spacing:.05em;border-radius:50px;cursor:pointer;border:none;transition:all var(--transition)}
+    .btn-submit{background:linear-gradient(135deg,var(--electric),#9ad3ff);color:var(--midnight)}
+    .btn-submit:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 24px rgba(98,182,255,.4)}
+    .btn-submit:disabled{opacity:.4;cursor:default}
+    .btn-next{background:transparent;border:1.5px solid var(--electric);color:var(--electric)}
+    .btn-next:hover{background:var(--electric-dim)}
+    .quiz-results{text-align:center}
+    .results-score-ring{width:140px;height:140px;border-radius:50%;background:conic-gradient(var(--electric) 0%,var(--electric) var(--score-pct),rgba(203,213,225,.1) var(--score-pct));display:flex;align-items:center;justify-content:center;margin:0 auto 2rem;position:relative}
+    .results-score-ring::before{content:'';position:absolute;width:110px;height:110px;border-radius:50%;background:var(--card-bg)}
+    .results-score-num{position:relative;z-index:1;font-size:2rem;font-weight:800;color:var(--moon-white)}
+    .results-score-num span{font-size:1rem;font-weight:500;color:var(--silver)}
+    .results-title{font-size:clamp(1.4rem,3vw,2rem);font-weight:800;color:var(--electric);margin-bottom:.5rem}
+    .results-message{font-size:1rem;color:var(--silver);margin-bottom:2.5rem;line-height:1.7}
+    .results-review{text-align:left;margin-bottom:2.5rem}
+    .results-review h3{font-size:.72rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--electric);margin-bottom:1rem}
+    .review-item{padding:.9rem 1.1rem;border-radius:var(--radius-sm);margin-bottom:.6rem;font-size:.86rem;line-height:1.6}
+    .review-item.correct-r{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2)}
+    .review-item.incorrect-r{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2)}
+    .review-item .review-q{font-weight:600;color:var(--moon-white);margin-bottom:.3rem}
+    .review-item .review-a{color:var(--silver)}
+    .review-item .review-correct{color:#86efac}
+    .review-item .review-incorrect{color:#fca5a5}
+    .results-buttons{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+    .btn-try-again{background:linear-gradient(135deg,var(--electric),#9ad3ff);color:var(--midnight);padding:.9rem 2.2rem;font-family:var(--font);font-size:.9rem;font-weight:700;border-radius:50px;border:none;cursor:pointer;transition:all var(--transition)}
+    .btn-try-again:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(98,182,255,.4)}
+    .btn-explore{background:transparent;border:1.5px solid rgba(203,213,225,.3);color:var(--silver);padding:.9rem 2.2rem;font-family:var(--font);font-size:.9rem;font-weight:700;border-radius:50px;cursor:pointer;transition:all var(--transition);text-decoration:none;display:inline-flex;align-items:center}
+    .btn-explore:hover{border-color:var(--electric);color:var(--electric)}
+    .quiz-start{text-align:center;padding:1rem 0}
+    .quiz-start p{color:var(--silver);font-size:.93rem;margin-bottom:2rem;line-height:1.75}
+    footer{position:relative;z-index:1;padding:3rem 2rem;text-align:center;border-top:1px solid rgba(203,213,225,.07)}
+    footer p{font-size:.8rem;color:rgba(203,213,225,.35);line-height:1.8}
+    footer a{color:var(--electric);text-decoration:none}
+    footer a:hover{text-decoration:underline}
+    @media(max-width:640px){.quiz-card{padding:1.75rem 1.25rem}.timeline-text{padding:1rem .5rem 0}}
+    .img-fallback{background:linear-gradient(135deg,#102746 0%,#1E4B78 50%,#071426 100%)}
+
+    /* =========================================================
+       LUNE AI — Floating Assistant & Chat Pop-up Styles
+       ========================================================= */
+    #lune-fab{
+      position:fixed;
+      bottom:28px;
+      right:28px;
+      z-index:9999;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 18px 10px 14px;
+      background:linear-gradient(135deg,#102746 0%,#1E4B78 100%);
+      color:var(--moon-white);
+      border:1.5px solid rgba(98,182,255,0.45);
+      border-radius:50px;
+      cursor:pointer;
+      font-family:var(--font);
+      font-size:.84rem;
+      font-weight:700;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      box-shadow:0 8px 30px rgba(0,0,0,0.5),0 0 25px rgba(98,182,255,0.35);
+      backdrop-filter:blur(10px);
+      transition:transform 0.3s cubic-bezier(0.2,0,0.2,1),box-shadow 0.3s ease,border-color 0.3s ease;
+      user-select:none;
+    }
+    #lune-fab:hover{
+      transform:translateY(-3px) scale(1.04);
+      border-color:var(--electric);
+      box-shadow:0 12px 35px rgba(0,0,0,0.6),0 0 35px rgba(98,182,255,0.55);
+    }
+    #lune-fab:focus-visible{
+      outline:2px solid var(--electric);
+      outline-offset:3px;
+    }
+    .lune-fab-icon{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:30px;
+      height:30px;
+      border-radius:50%;
+      background:rgba(98,182,255,0.18);
+      color:var(--electric);
+      font-size:1.05rem;
+      box-shadow:inset 0 0 8px rgba(98,182,255,0.4);
+      animation:lune-pulse 3s infinite ease-in-out;
+    }
+    @keyframes lune-pulse{
+      0%,100%{transform:scale(1);box-shadow:inset 0 0 8px rgba(98,182,255,0.4)}
+      50%{transform:scale(1.08);box-shadow:inset 0 0 14px rgba(98,182,255,0.7)}
+    }
+    .lune-fab-pulse{
+      position:absolute;
+      inset:-4px;
+      border-radius:50px;
+      border:1px solid rgba(98,182,255,0.5);
+      animation:lune-ping 2.5s cubic-bezier(0,0,0.2,1) infinite;
+      pointer-events:none;
+    }
+    @keyframes lune-ping{
+      0%{transform:scale(0.96);opacity:0.8}
+      70%,100%{transform:scale(1.22,1.35);opacity:0}
+    }
+
+    /* Chat Pop-up Window */
+    #lune-chat-window{
+      position:fixed;
+      bottom:86px;
+      right:28px;
+      width:min(410px,calc(100vw - 32px));
+      height:min(580px,calc(100vh - 110px));
+      background:rgba(10,24,44,0.92);
+      border:1.5px solid rgba(98,182,255,0.3);
+      border-radius:20px;
+      box-shadow:0 25px 70px rgba(0,0,0,0.75),0 0 50px rgba(98,182,255,0.25);
+      backdrop-filter:blur(24px);
+      -webkit-backdrop-filter:blur(24px);
+      z-index:9998;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      opacity:0;
+      transform:translateY(20px) scale(0.94);
+      pointer-events:none;
+      transition:opacity 0.32s cubic-bezier(0.2,0,0.2,1),transform 0.32s cubic-bezier(0.2,0,0.2,1);
+    }
+    #lune-chat-window.open{
+      opacity:1;
+      transform:translateY(0) scale(1);
+      pointer-events:auto;
+    }
+    #lune-chat-window.minimized{
+      height:64px;
+      overflow:hidden;
+    }
+
+    /* Header */
+    .lune-header{
+      padding:12px 16px;
+      background:rgba(7,20,38,0.85);
+      border-bottom:1px solid rgba(98,182,255,0.18);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-shrink:0;
+    }
+    .lune-brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .lune-avatar{
+      width:36px;
+      height:36px;
+      border-radius:50%;
+      background:radial-gradient(circle at 35% 35%,#62B6FF 0%,#1E4B78 60%,#102746 100%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:1.1rem;
+      border:1.5px solid rgba(98,182,255,0.5);
+      box-shadow:0 0 12px rgba(98,182,255,0.4);
+      flex-shrink:0;
+    }
+    .lune-titles{
+      display:flex;
+      flex-direction:column;
+    }
+    .lune-title{
+      font-size:.9rem;
+      font-weight:800;
+      color:var(--moon-white);
+      letter-spacing:.04em;
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .lune-tag{
+      font-size:.6rem;
+      padding:1px 6px;
+      background:rgba(98,182,255,0.18);
+      color:var(--electric);
+      border-radius:8px;
+      border:1px solid rgba(98,182,255,0.3);
+      font-weight:700;
+    }
+    .lune-subtitle{
+      font-size:.72rem;
+      color:var(--silver);
+      opacity:.85;
+      line-height:1.2;
+    }
+    .lune-actions{
+      display:flex;
+      align-items:center;
+      gap:4px;
+    }
+    .lune-btn-icon{
+      background:transparent;
+      border:none;
+      color:var(--silver);
+      width:32px;
+      height:32px;
+      border-radius:8px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition:color var(--transition),background var(--transition);
+    }
+    .lune-btn-icon:hover{
+      color:var(--moon-white);
+      background:rgba(98,182,255,0.15);
+    }
+    .lune-btn-icon:focus-visible{
+      outline:2px solid var(--electric);
+    }
+
+    /* Chat Messages Body */
+    .lune-messages{
+      flex:1;
+      overflow-y:auto;
+      padding:16px 14px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      scroll-behavior:smooth;
+    }
+    .lune-messages::-webkit-scrollbar{
+      width:6px;
+    }
+    .lune-messages::-webkit-scrollbar-thumb{
+      background:rgba(98,182,255,0.25);
+      border-radius:10px;
+    }
+
+    .lune-msg{
+      display:flex;
+      flex-direction:column;
+      max-width:86%;
+      animation:lune-msg-in 0.28s cubic-bezier(0.2,0,0.2,1);
+    }
+    @keyframes lune-msg-in{
+      from{opacity:0;transform:translateY(8px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+    .lune-msg.bot{
+      align-self:flex-start;
+    }
+    .lune-msg.user{
+      align-self:flex-end;
+    }
+    .lune-bubble{
+      padding:11px 14px;
+      border-radius:16px;
+      font-size:.85rem;
+      line-height:1.55;
+      word-break:break-word;
+    }
+    .lune-msg.bot .lune-bubble{
+      background:rgba(16,39,70,0.85);
+      border:1px solid rgba(98,182,255,0.22);
+      color:var(--moon-white);
+      border-top-left-radius:4px;
+      box-shadow:0 4px 16px rgba(0,0,0,0.3);
+    }
+    .lune-msg.bot .lune-bubble a{
+      color:var(--electric);
+      text-decoration:none;
+      font-weight:600;
+      border-bottom:1px dashed var(--electric);
+    }
+    .lune-msg.bot .lune-bubble a:hover{
+      border-bottom-style:solid;
+    }
+    .lune-msg.user .lune-bubble{
+      background:linear-gradient(135deg,var(--electric) 0%,#2686df 100%);
+      color:#051124;
+      font-weight:600;
+      border-top-right-radius:4px;
+      box-shadow:0 4px 18px rgba(98,182,255,0.3);
+    }
+    .lune-time{
+      font-size:.65rem;
+      color:rgba(203,213,225,0.55);
+      margin-top:4px;
+      padding:0 4px;
+    }
+    .lune-msg.user .lune-time{
+      align-self:flex-end;
+    }
+
+    /* Thinking Indicator */
+    .lune-thinking{
+      display:inline-flex;
+      align-items:center;
+      gap:5px;
+      padding:10px 14px;
+      background:rgba(16,39,70,0.85);
+      border:1px solid rgba(98,182,255,0.22);
+      border-radius:16px;
+      border-top-left-radius:4px;
+      width:fit-content;
+      color:var(--silver);
+      font-size:.78rem;
+      font-style:italic;
+    }
+    .lune-thinking-dots{
+      display:inline-flex;
+      gap:3px;
+    }
+    .lune-thinking-dots span{
+      width:5px;
+      height:5px;
+      border-radius:50%;
+      background:var(--electric);
+      animation:lune-blink 1.4s infinite ease-in-out;
+    }
+    .lune-thinking-dots span:nth-child(2){animation-delay:.2s}
+    .lune-thinking-dots span:nth-child(3){animation-delay:.4s}
+    @keyframes lune-blink{
+      0%,80%,100%{opacity:0.25;transform:scale(0.8)}
+      40%{opacity:1;transform:scale(1.2)}
+    }
+
+    /* Suggestion Chips */
+    .lune-suggestions-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:4px;
+    }
+    .lune-suggestions-label{
+      font-size:.68rem;
+      font-weight:700;
+      color:var(--electric);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      margin-left:2px;
+    }
+    .lune-chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+    }
+    .lune-chip{
+      background:rgba(98,182,255,0.08);
+      border:1px solid rgba(98,182,255,0.25);
+      color:var(--silver);
+      padding:6px 11px;
+      border-radius:20px;
+      font-size:.75rem;
+      font-family:var(--font);
+      cursor:pointer;
+      text-align:left;
+      transition:all var(--transition);
+      line-height:1.3;
+    }
+    .lune-chip:hover{
+      background:rgba(98,182,255,0.2);
+      border-color:var(--electric);
+      color:var(--moon-white);
+      transform:translateY(-1px);
+    }
+    .lune-chip:focus-visible{
+      outline:2px solid var(--electric);
+      outline-offset:2px;
+    }
+
+    /* Footer & Input Area */
+    .lune-footer-area{
+      padding:10px 14px 12px;
+      background:rgba(7,20,38,0.95);
+      border-top:1px solid rgba(98,182,255,0.18);
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      flex-shrink:0;
+    }
+    .lune-input-row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      background:rgba(16,39,70,0.6);
+      border:1px solid rgba(98,182,255,0.25);
+      border-radius:24px;
+      padding:4px 6px 4px 14px;
+      transition:border-color var(--transition),box-shadow var(--transition);
+    }
+    .lune-input-row:focus-within{
+      border-color:var(--electric);
+      box-shadow:0 0 16px rgba(98,182,255,0.3);
+    }
+    #lune-text-input{
+      flex:1;
+      background:transparent;
+      border:none;
+      outline:none;
+      color:var(--moon-white);
+      font-family:var(--font);
+      font-size:.85rem;
+      line-height:1.4;
+      padding:6px 0;
+    }
+    #lune-text-input::placeholder{
+      color:rgba(203,213,225,0.45);
+    }
+
+    /* Mic Button */
+    .lune-btn-tool{
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      border:none;
+      background:transparent;
+      color:var(--silver);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition:all var(--transition);
+      flex-shrink:0;
+      position:relative;
+    }
+    .lune-btn-tool:hover{
+      color:var(--electric);
+      background:rgba(98,182,255,0.14);
+    }
+    .lune-btn-tool.listening{
+      color:#fff;
+      background:#ef4444;
+      box-shadow:0 0 15px rgba(239,68,68,0.7);
+      animation:lune-mic-beat 1.2s infinite ease-in-out;
+    }
+    @keyframes lune-mic-beat{
+      0%,100%{transform:scale(1)}
+      50%{transform:scale(1.12)}
+    }
+    .lune-btn-send{
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      border:none;
+      background:linear-gradient(135deg,var(--electric) 0%,#3d9beb 100%);
+      color:var(--midnight);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition:transform var(--transition),box-shadow var(--transition),opacity var(--transition);
+      flex-shrink:0;
+    }
+    .lune-btn-send:hover:not(:disabled){
+      transform:scale(1.08);
+      box-shadow:0 0 14px rgba(98,182,255,0.6);
+    }
+    .lune-btn-send:disabled{
+      opacity:0.4;
+      cursor:default;
+    }
+
+    .lune-disclaimer{
+      font-size:.66rem;
+      color:rgba(203,213,225,0.5);
+      text-align:center;
+      line-height:1.3;
+      padding:0 4px;
+    }
+
+    /* Voice Listening Banner */
+    .lune-listening-banner{
+      display:none;
+      padding:6px 12px;
+      background:rgba(239,68,68,0.15);
+      border:1px solid rgba(239,68,68,0.3);
+      border-radius:8px;
+      color:#fca5a5;
+      font-size:.72rem;
+      align-items:center;
+      justify-content:space-between;
+      animation:fadeIn 0.25s ease;
+    }
+    .lune-listening-banner.active{
+      display:flex;
+    }
+
+    @media(max-width:640px){
+      #lune-fab{bottom:16px;right:16px;padding:8px 14px 8px 10px;font-size:.76rem}
+      #lune-chat-window{
+        bottom:74px;
+        right:12px;
+        width:calc(100vw - 24px);
+        height:calc(100vh - 96px);
+      }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="stars-canvas" aria-hidden="true"></canvas>
+
+<nav id="navbar" role="navigation" aria-label="Main navigation">
+  <a href="#home" class="nav-logo" aria-label="Return to top">&#127769; Lunar Exhibit</a>
+  <button id="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links" id="nav-links" role="list">
+    <li><a href="#home" data-section="home">Home</a></li>
+    <li><a href="#timeline" data-section="timeline">Timeline</a></li>
+    <li><a href="#facts" data-section="facts">Facts</a></li>
+    <li><a href="#quiz" data-section="quiz">Quiz</a></li>
+    <li><a href="#sources" data-section="sources">Sources</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="home" aria-labelledby="hero-heading">
+  <div class="hero-bg" aria-hidden="true"></div>
+  <div class="hero-moon-wrap" aria-hidden="true">
+    <img src="assets/hero_moon.jpg" alt="Photorealistic full moon in deep space" id="hero-moon-img" class="img-fallback" onerror="this.parentElement.style.background='radial-gradient(circle,#2a4a7a,#071426)'" />
+  </div>
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow reveal" aria-label="Interactive lunar exhibit">Interactive Lunar Exhibit</div>
+    <h1 class="hero-title reveal reveal-delay-1" id="hero-heading">THE MOON:<br /><span>BEYOND OUR WORLD</span></h1>
+    <p class="hero-subtitle reveal reveal-delay-2">Discover the missions, people, and extraordinary discoveries that changed humanity's understanding of our closest celestial neighbor.</p>
+    <p class="hero-intro reveal reveal-delay-3">This interactive lunar exhibit takes you on a journey through humanity's exploration of the Moon. Travel through historic expeditions, uncover surprising lunar facts, and test your knowledge with an interactive quiz. From the first steps on the lunar surface to the future of space exploration, discover the story of how we reached beyond Earth.</p>
+    <a href="#timeline" class="btn-primary reveal reveal-delay-4" aria-label="Begin Your Lunar Journey">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+      Begin Your Lunar Journey
+    </a>
+  </div>
+  <div class="scroll-indicator reveal reveal-delay-5" aria-hidden="true">
+    <div class="scroll-mouse"><div class="scroll-mouse-dot"></div></div>
+    <span>Scroll to explore</span>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section id="timeline" aria-labelledby="timeline-heading">
+  <div class="container">
+    <div class="timeline-header">
+      <p class="section-label reveal">Humanity's Journey</p>
+      <h2 class="section-title reveal reveal-delay-1" id="timeline-heading">ONE GIANT LEAP<br />THROUGH HISTORY</h2>
+      <p class="section-subtitle reveal reveal-delay-2" style="margin:0 auto">Decades of scientific ambition, technological innovation, and extraordinary courage made lunar exploration possible. From the first spacecraft to impact the Moon to recent missions pushing toward the south pole, here is the story of how humanity reached beyond Earth.</p>
+    </div>
+    <div class="timeline-spine" id="timeline-entries" aria-label="Lunar mission timeline"></div>
+  </div>
+</section>
+
+<!-- FACTS -->
+<section id="facts" aria-labelledby="facts-heading">
+  <div class="container">
+    <div class="facts-header">
+      <p class="section-label reveal">Lunar Science</p>
+      <h2 class="section-title reveal reveal-delay-1" id="facts-heading">THINK YOU KNOW<br />THE MOON?</h2>
+      <p class="section-subtitle reveal reveal-delay-2" style="margin:0 auto">Small world. Extraordinary secrets. Discover the facts that make our nearest celestial neighbor so fascinating.</p>
+    </div>
+    <div class="facts-grid" id="facts-grid"></div>
+  </div>
+</section>
+
+<!-- QUIZ -->
+<section id="quiz" aria-labelledby="quiz-heading">
+  <div class="container">
+    <div class="quiz-header">
+      <p class="section-label reveal">Knowledge Check</p>
+      <h2 class="section-title reveal reveal-delay-1" id="quiz-heading">MISSION CONTROL:<br />TEST YOUR KNOWLEDGE</h2>
+      <p class="section-subtitle reveal reveal-delay-2" style="margin:0 auto">You've explored the missions and uncovered the secrets. Now prove your lunar expertise.</p>
+    </div>
+    <div class="quiz-container">
+      <div class="quiz-card reveal" id="quiz-card"></div>
+    </div>
+  </div>
+</section>
+
+<!-- SOURCES & REFERENCES SECTION -->
+<section id="sources" aria-labelledby="sources-heading" style="padding:5rem 2rem 3rem;background:rgba(7,20,38,0.7);border-top:1px solid rgba(98,182,255,0.15)">
+  <div class="container" style="max-width:980px">
+    <div style="text-align:center;margin-bottom:2.5rem">
+      <p class="section-label reveal">Scientific Integrity</p>
+      <h2 class="section-title reveal reveal-delay-1" id="sources-heading" style="font-size:clamp(1.6rem,3.5vw,2.5rem)">TRUSTED SOURCES &amp; ARCHIVES</h2>
+      <p class="section-subtitle reveal reveal-delay-2" style="margin:0 auto;font-size:.92rem">All dates, landing locations, mission parameters, and historical facts in this exhibit are verified against official records from primary space agencies.</p>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;margin-bottom:2.5rem">
+      <div style="background:var(--card-bg);padding:1.25rem;border-radius:var(--radius-sm);border:1px solid rgba(98,182,255,0.12)">
+        <h4 style="color:var(--electric);font-size:.85rem;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.08em">NASA Archives</h4>
+        <p style="font-size:.8rem;color:var(--silver);line-height:1.6;margin-bottom:.7rem">Official flight logs, Apollo lunar surface journals, and science mission directorate.</p>
+        <a href="https://science.nasa.gov/moon/" target="_blank" rel="noopener noreferrer" style="color:var(--electric);font-size:.8rem;font-weight:700;text-decoration:none">&#8594; NASA Moon Science</a><br>
+        <a href="https://images.nasa.gov/" target="_blank" rel="noopener noreferrer" style="color:var(--electric);font-size:.8rem;font-weight:700;text-decoration:none">&#8594; NASA Image Library</a>
+      </div>
+
+      <div style="background:var(--card-bg);padding:1.25rem;border-radius:var(--radius-sm);border:1px solid rgba(98,182,255,0.12)">
+        <h4 style="color:var(--electric);font-size:.85rem;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.08em">ISRO (India)</h4>
+        <p style="font-size:.8rem;color:var(--silver);line-height:1.6;margin-bottom:.7rem">Chandrayaan-3 soft-landing data, Vikram lander and Pragyan rover surface discoveries.</p>
+        <a href="https://www.isro.gov.in/Chandrayaan3.html" target="_blank" rel="noopener noreferrer" style="color:var(--electric);font-size:.8rem;font-weight:700;text-decoration:none">&#8594; ISRO Chandrayaan-3</a>
+      </div>
+
+      <div style="background:var(--card-bg);padding:1.25rem;border-radius:var(--radius-sm);border:1px solid rgba(98,182,255,0.12)">
+        <h4 style="color:var(--electric);font-size:.85rem;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.08em">ESA &amp; Museums</h4>
+        <p style="font-size:.8rem;color:var(--silver);line-height:1.6;margin-bottom:.7rem">European Space Agency exploration datasets and Smithsonian National Air and Space Museum records.</p>
+        <a href="https://www.esa.int/Science_Exploration/Human_and_Robotic_Exploration/Exploration/The_Moon" target="_blank" rel="noopener noreferrer" style="color:var(--electric);font-size:.8rem;font-weight:700;text-decoration:none">&#8594; ESA Lunar Exploration</a><br>
+        <a href="https://airandspace.si.edu/" target="_blank" rel="noopener noreferrer" style="color:var(--electric);font-size:.8rem;font-weight:700;text-decoration:none">&#8594; Smithsonian NASM</a>
+      </div>
+
+      <div style="background:var(--card-bg);padding:1.25rem;border-radius:var(--radius-sm);border:1px solid rgba(98,182,255,0.12)">
+        <h4 style="color:var(--electric);font-size:.85rem;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.08em">Archival Imagery</h4>
+        <p style="font-size:.8rem;color:var(--silver);line-height:1.6;margin-bottom:.7rem">Authentic historical mission photographs curated from NASA, Wikimedia Commons archives, and agency repositories.</p>
+        <a href="https://commons.wikimedia.org/wiki/Category:Moon_exploration" target="_blank" rel="noopener noreferrer" style="color:var(--electric);font-size:.8rem;font-weight:700;text-decoration:none">&#8594; Wikimedia Historical Commons</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LUNE AI — FLOATING ASSISTANT & CHAT WINDOW -->
+<div id="lune-chat-window" role="dialog" aria-modal="true" aria-labelledby="lune-window-title" aria-hidden="true">
+  <div class="lune-header">
+    <div class="lune-brand">
+      <div class="lune-avatar" aria-hidden="true">&#127769;</div>
+      <div class="lune-titles">
+        <div class="lune-title" id="lune-window-title">
+          <span>LUNE AI</span>
+          <span class="lune-tag">Guide</span>
+        </div>
+        <div class="lune-subtitle">Your guide to the Moon and beyond.</div>
+      </div>
+    </div>
+    <div class="lune-actions">
+      <button class="lune-btn-icon" id="lune-btn-min" type="button" aria-label="Minimize LUNE AI assistant" title="Minimize">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="lune-btn-icon" id="lune-btn-close" type="button" aria-label="Close LUNE AI assistant" title="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="lune-messages" id="lune-messages" role="log" aria-live="polite">
+    <!-- Messages inserted dynamically via script -->
+  </div>
+
+  <div class="lune-footer-area">
+    <div class="lune-listening-banner" id="lune-listening-banner">
+      <span>&#127908; Listening to your voice... Speak now!</span>
+      <button id="lune-cancel-mic" type="button" style="background:none;border:none;color:#fff;cursor:pointer;font-weight:700;font-size:.74rem">Stop</button>
+    </div>
+
+    <form class="lune-input-row" id="lune-form" onsubmit="return false;">
+      <input type="text" id="lune-text-input" placeholder="Ask me anything about the Moon..." autocomplete="off" spellcheck="false" aria-label="Type your question for LUNE AI" />
+      <button class="lune-btn-tool" id="lune-mic-btn" type="button" aria-label="Ask with voice microphone" title="Use voice input">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17" aria-hidden="true">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
+      <button class="lune-btn-send" id="lune-send-btn" type="submit" aria-label="Send question to LUNE AI" title="Send question">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15" aria-hidden="true">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </form>
+    <div class="lune-disclaimer">Answers focus on verified lunar exploration records &amp; scientific sources (NASA / ISRO / ESA).</div>
+  </div>
+</div>
+
+<!-- Floating Action Button -->
+<button id="lune-fab" type="button" aria-haspopup="dialog" aria-controls="lune-chat-window" aria-expanded="false" aria-label="Open LUNE AI assistant">
+  <div class="lune-fab-pulse" aria-hidden="true"></div>
+  <span class="lune-fab-icon" aria-hidden="true">&#127769;</span>
+  <span>LUNE AI</span>
+</button>
+
+<footer role="contentinfo">
+  <p>&#127769; <strong>The Moon: Beyond Our World</strong> &mdash; Interactive Educational Exhibit<br />
+  Mission data, parameters, and flight operations cross-referenced with NASA, ISRO, ESA, and Smithsonian Air &amp; Space Museum.<br />
+  <small style="color:rgba(203,213,225,0.6)">All photographs represent authentic mission hardware and official archival imagery. No AI-generated spacecraft renders or synthetic historical photos are used.</small></p>
+</footer>
+
+<script>
+'use strict';
+
+/* STARS */
+(function(){
+  const c=document.getElementById('stars-canvas'),ctx=c.getContext('2d');
+  let stars=[],W,H,raf;
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;init()}
+  function init(){stars=[];const n=Math.floor(W*H/3200);for(let i=0;i<n;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.15+.15,a:Math.random()*.9+.1,sp:Math.random()*.004+.001,ph:Math.random()*Math.PI*2})}
+  function draw(t){ctx.clearRect(0,0,W,H);stars.forEach(s=>{const a=s.a*(.4+.6*Math.sin(s.ph+t*s.sp));ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.fill()});raf=requestAnimationFrame(draw)}
+  window.addEventListener('resize',resize,{passive:true});resize();requestAnimationFrame(draw);
+})();
+
+/* NAVBAR */
+(function(){
+  const nb=document.getElementById('navbar'),tog=document.getElementById('nav-toggle'),nl=document.getElementById('nav-links'),links=nl.querySelectorAll('a');
+  const secs=['home','timeline','facts','quiz','sources'];
+  window.addEventListener('scroll',()=>{
+    nb.classList.toggle('scrolled',window.scrollY>60);
+    const mid=window.scrollY+window.innerHeight/2;
+    secs.forEach(id=>{const el=document.getElementById(id);if(!el)return;if(mid>=el.offsetTop&&mid<el.offsetTop+el.offsetHeight)links.forEach(l=>l.classList.toggle('active',l.dataset.section===id))});
+  },{passive:true});
+  tog.addEventListener('click',()=>{const o=nl.classList.toggle('open');tog.classList.toggle('open',o);tog.setAttribute('aria-expanded',o)});
+  links.forEach(l=>l.addEventListener('click',()=>{nl.classList.remove('open');tog.classList.remove('open');tog.setAttribute('aria-expanded',false)}));
+})();
+
+/* REVEAL */
+(function(){
+  const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:.1});
+  window._observe=()=>document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+  window._observe();
+})();
+
+/* TIMELINE DATA — GROUNDED IN NASA, ISRO & ARCHIVAL RECORDS */
+const missions=[
+  {
+    name:'Luna 2',
+    year:'1959',
+    agency:'Soviet Union — USSR Academy of Sciences',
+    badge:'USSR \u00B7 Sep 1959',
+    imgSrc:'assets/luna2_mission.jpg',
+    fallbackImg:'https://upload.wikimedia.org/wikipedia/commons/c/ca/Luna_2_spacecraft.jpg',
+    imgAlt:'Luna 2 spherical probe exhibit at the Memorial Museum of Cosmonautics',
+    imgCredit:'Archival photograph \u2014 Soviet Space Program / Memorial Museum of Cosmonautics',
+    when:'September 12\u201314, 1959 (impacted Sept 14 at 00:02:24 Moscow Time / Sept 13 UTC)',
+    who:'Soviet Union (USSR). Unmanned spherical spacecraft equipped with scintillation counters and magnetometer.',
+    where:'Mare Imbrium region (near craters Archimedes, Aristillus, and Autolycus) \u2014 first human-made object to impact the Moon.',
+    why:"To demonstrate interplanetary ballistic delivery to the Moon and measure solar wind, cosmic radiation, and lunar magnetic fields.",
+    achievement:"Luna 2 was the first artificial object to reach the Moon's surface. Its onboard fluxgate magnetometers confirmed that the Moon has no significant dipole magnetic field, and its ion traps made direct detections of solar wind flux in cislunar space.",
+    sources:[
+      {title:'NASA NSSDC ID: 1959-014A (Luna 2)',url:'https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1959-014A'},
+      {title:'NASA Solar System Exploration — Luna 2',url:'https://science.nasa.gov/mission/luna-2/'}
+    ]
+  },
+  {
+    name:'Luna 9',
+    year:'1966',
+    agency:'Soviet Union — Lavochkin Design Bureau',
+    badge:'USSR \u00B7 Feb 1966',
+    imgSrc:'assets/luna9_mission.jpg',
+    fallbackImg:'https://upload.wikimedia.org/wikipedia/commons/9/91/Luna_9_capsule.jpg',
+    imgAlt:'Luna 9 petal-shaped landing capsule with television camera system',
+    imgCredit:'Official Soviet Space Program archival photograph / Lavochkin Museum',
+    when:'February 3, 1966 (first soft landing at 18:44:52 UTC)',
+    who:'Soviet Union (USSR). Unmanned lander with petal-deploying stabilizing system and television apparatus.',
+    where:'Oceanus Procellarum (Ocean of Storms), coordinates ~7.08\u00B0 N, 64.37\u00B0 W.',
+    why:"To achieve the first survivable soft landing on the Moon, verify the load-bearing strength of lunar regolith, and transmit close-up surface pictures.",
+    achievement:"Luna 9 achieved the first survivable soft landing on any extraterrestrial world. It disproved the prevailing fear that spacecraft would sink fatally into meters of loose dust, and transmitted the first panoramic television pictures from the lunar surface.",
+    sources:[
+      {title:'NASA NSSDC ID: 1966-006A (Luna 9)',url:'https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1966-006A'},
+      {title:'NASA Science — Luna 9 Mission Overview',url:'https://science.nasa.gov/mission/luna-9/'}
+    ]
+  },
+  {
+    name:'Apollo 11',
+    year:'1969',
+    agency:'NASA — United States',
+    badge:'NASA \u00B7 Jul 1969',
+    imgSrc:'assets/apollo11.jpg',
+    fallbackImg:'https://images-assets.nasa.gov/image/as11-44-6574/as11-44-6574~medium.jpg',
+    imgAlt:'Apollo 11 Lunar Module Eagle photographed from Columbia in lunar orbit by Michael Collins',
+    imgCredit:'NASA photograph AS11-44-6574 by Michael Collins / NASA Images Archive',
+    when:'July 16\u201324, 1969 (lunar landing: July 20 at 20:17:40 UTC; first moonwalk: 02:56 UTC July 21)',
+    who:'NASA. Crew: Neil Armstrong (Commander), Buzz Aldrin (Lunar Module Pilot), Michael Collins (Command Module Pilot in lunar orbit).',
+    where:'Tranquility Base, Mare Tranquillitatis (0.67408\u00B0 N, 23.47297\u00B0 E).',
+    why:"To fulfill President John F. Kennedy's national goal of landing humans on the Moon and returning them safely to Earth before the end of the 1960s.",
+    achievement:"First human expedition to land and walk on the Moon. Armstrong and Aldrin spent 21 hours and 36 minutes on the lunar surface, performed a 2-hour 31-minute EVA, deployed the EASEP scientific station, and returned 21.55 kg of pristine lunar samples.",
+    sources:[
+      {title:'NASA Apollo 11 Mission Overview',url:'https://www.nasa.gov/mission/apollo-11/'},
+      {title:'NASA Lunar Surface Journal — Apollo 11',url:'https://www.nasa.gov/history/alsj/a11/a11.html'},
+      {title:'Smithsonian National Air and Space Museum — Apollo 11',url:'https://airandspace.si.edu/explore/stories/apollo-11'}
+    ]
+  },
+  {
+    name:'Apollo 12',
+    year:'1969',
+    agency:'NASA — United States',
+    badge:'NASA \u00B7 Nov 1969',
+    imgSrc:'assets/apollo12.jpg',
+    fallbackImg:'https://images-assets.nasa.gov/image/as12-48-7133/as12-48-7133~medium.jpg',
+    imgAlt:'Pete Conrad examines the robotic Surveyor 3 lander with Intrepid in the background',
+    imgCredit:'NASA photograph AS12-48-7133 by Alan Bean / NASA Images Archive',
+    when:'November 14\u201324, 1969 (lunar surface stay: Nov 19\u201320, 1969)',
+    who:'NASA. Crew: Charles "Pete" Conrad (Commander), Alan L. Bean (Lunar Module Pilot), Richard F. Gordon Jr. (Command Module Pilot).',
+    where:'Oceanus Procellarum (3.01239\u00B0 S, 23.42157\u00B0 W), approximately 160 meters from Surveyor 3.',
+    why:"To demonstrate pinpoint landing guidance capability, deploy the Apollo Lunar Surface Experiments Package (ALSEP), and retrieve hardware exposed to lunar environment.",
+    achievement:"Executed the first pinpoint landing on another celestial world. Conrad and Bean conducted two EVAs totaling 7 hours 45 minutes, retrieved parts of the Surveyor 3 robotic probe for microbial and degradation analysis on Earth, and collected 34.35 kg of samples.",
+    sources:[
+      {title:'NASA Apollo 12 Flight Summary',url:'https://www.nasa.gov/mission/apollo-12/'},
+      {title:'NASA Apollo Lunar Surface Journal — Apollo 12',url:'https://www.nasa.gov/history/alsj/a12/a12.html'}
+    ]
+  },
+  {
+    name:'Apollo 15',
+    year:'1971',
+    agency:'NASA — United States',
+    badge:'NASA \u00B7 Jul 1971',
+    imgSrc:'assets/apollo15.jpg',
+    fallbackImg:'https://images-assets.nasa.gov/image/as15-88-11866/as15-88-11866~medium.jpg',
+    imgAlt:'Astronaut James Irwin with the Lunar Roving Vehicle and Mount Hadley in the background',
+    imgCredit:'NASA photograph AS15-88-11866 by David Scott / NASA Images Archive',
+    when:'July 26 \u2013 August 7, 1971 (lunar surface: July 30 \u2013 August 2, 1971)',
+    who:'NASA. Crew: David R. Scott (Commander), James B. Irwin (Lunar Module Pilot), Alfred M. Worden (Command Module Pilot).',
+    where:'Hadley\u2013Apennine region (26.1322\u00B0 N, 3.6339\u00B0 E) along the sinuous Hadley Rille gorge.',
+    why:"First 'J-mission' designed for extended lunar surface scientific exploration, long-range geological roving, and deep orbital surveys.",
+    achievement:"First mission to deploy the Boeing/GM Lunar Roving Vehicle (LRV), traversing 27.8 km across the rugged lunar surface. The crew collected 77.3 kg of samples, including the 4-billion-year-old 'Genesis Rock' (anorthosite sample 15415) verifying the lunar magma ocean hypothesis.",
+    sources:[
+      {title:'NASA Apollo 15 Overview',url:'https://www.nasa.gov/mission/apollo-15/'},
+      {title:'Smithsonian NASM — Apollo 15 Lunar Roving Vehicle',url:'https://airandspace.si.edu/collection-objects/lunar-roving-vehicle-apollo-15/nasm_A19760777000'}
+    ]
+  },
+  {
+    name:'Apollo 17',
+    year:'1972',
+    agency:'NASA — United States',
+    badge:'NASA \u00B7 Dec 1972',
+    imgSrc:'assets/apollo17.jpg',
+    fallbackImg:'https://images-assets.nasa.gov/image/as17-140-21496/as17-140-21496~medium.jpg',
+    imgAlt:'Dr. Harrison Schmitt collecting lunar samples near a giant boulder in Taurus-Littrow',
+    imgCredit:'NASA photograph AS17-140-21496 by Eugene Cernan / NASA Images Archive',
+    when:'December 7\u201319, 1972 (lunar surface stay: Dec 11\u201314, 1972)',
+    who:'NASA. Crew: Eugene A. Cernan (Commander), Harrison H. "Jack" Schmitt (Lunar Module Pilot & professional Ph.D. geologist), Ronald E. Evans (Command Module Pilot).',
+    where:'Taurus\u2013Littrow valley (20.19080\u00B0 N, 30.77168\u00B0 E) at the southeastern rim of Mare Serenitatis.',
+    why:"To perform an exhaustive geological investigation of both ancient highland crust and young pyroclastic volcanic deposits.",
+    achievement:"The most scientifically productive and final Apollo landing. Schmitt and Cernan spent 75 hours on the surface, completed 22 hours 4 minutes of EVAs, logged 35.7 km on the rover, discovered orange volcanic pyroclastic glass beads, and returned 110.5 kg of rocks. Eugene Cernan remains the last human to walk on the Moon.",
+    sources:[
+      {title:'NASA Apollo 17 Mission Summary',url:'https://www.nasa.gov/mission/apollo-17/'},
+      {title:'NASA ALSJ — Apollo 17 Lunar Surface Operations',url:'https://www.nasa.gov/history/alsj/a17/a17.html'},
+      {title:'Smithsonian NASM — Apollo 17 Record Setting Final Mission',url:'https://airandspace.si.edu/explore/stories/apollo-17'}
+    ]
+  },
+  {
+    name:'Chandrayaan-3',
+    year:'2023',
+    agency:'ISRO — Indian Space Research Organisation',
+    badge:'ISRO \u00B7 Aug 2023',
+    imgSrc:'assets/chandrayaan3.png',
+    fallbackImg:'assets/hero_moon.jpg',
+    imgAlt:'ISRO Pragyan lunar rover on the Moon surface during Chandrayaan-3 mission operations',
+    imgCredit:'Official ISRO imagery / Department of Space, Government of India',
+    when:'Launched July 14, 2023; soft landing August 23, 2023 at 12:32 UTC (18:02 IST)',
+    who:'Indian Space Research Organisation (ISRO). Vikram Lander (with ChaSTE, ILSA, LP) and Pragyan Rover (with LIBS and APXS payloads).',
+    where:"High southern latitude (~69.373\u00B0 S, 32.319\u00B0 E) between Manzinus C and Simpelius N craters, near the lunar south pole.",
+    why:"To achieve a demonstrated soft landing, deploy a surface mobility rover, and carry out in-situ thermal, elemental, and seismic experiments in high southern latitudes.",
+    achievement:"India became the fourth nation to accomplish a soft landing on the Moon and the first to achieve a landing in the ultra-challenging south polar region. Pragyan's LIBS instrument confirmed in-situ the unambiguous presence of Sulphur (S), Oxygen (O), Iron (Fe), Titanium (Ti), and Aluminium (Al) in polar regolith.",
+    sources:[
+      {title:'ISRO Official Chandrayaan-3 Mission Details',url:'https://www.isro.gov.in/Chandrayaan3_Details.html'},
+      {title:'ISRO Press Release: In-situ LIBS Confirms Sulphur at South Pole',url:'https://www.isro.gov.in/Chandrayaan3_LIBS.html'}
+    ]
+  },
+  {
+    name:'Artemis II',
+    year:'2026',
+    agency:'NASA & CSA — United States & Canada',
+    badge:'NASA/CSA \u00B7 Planned 2026',
+    imgSrc:'assets/artemis2.jpg',
+    fallbackImg:'https://images-assets.nasa.gov/image/nhq202304030027/nhq202304030027~medium.jpg',
+    imgAlt:'Artemis II crew portrait: Reid Wiseman, Victor Glover, Christina Koch, and Jeremy Hansen',
+    imgCredit:'NASA official crew photograph (NASA / Bill Ingalls)',
+    when:'Planned launch: 2026 (approx. 10-day flight test)',
+    who:'NASA and Canadian Space Agency. Crew: Commander Reid Wiseman, Pilot Victor Glover, Mission Specialist 1 Christina Hammock Koch, Mission Specialist 2 Jeremy Hansen.',
+    where:"Lunar free-return trajectory \u2014 a crewed lunar flyby traveling approximately 8,900 km beyond the far side of the Moon.",
+    why:"To conduct the first crewed flight test of the Space Launch System (SLS) rocket and Orion spacecraft, validating human life support, communications, and deep-space manual handling.",
+    achievement:"<strong>CRITICAL DISTINCTION: Artemis II is a crewed lunar flyby \u2014 it is NOT a lunar landing.</strong> It will be the first crewed mission to travel beyond low Earth orbit since Apollo 17 in 1972, and will establish the deep-space flight pedigree necessary for Artemis III's south pole landing attempt.",
+    sources:[
+      {title:'NASA Artemis II Mission Overview',url:'https://www.nasa.gov/mission/artemis-ii/'},
+      {title:'NASA Orion Spacecraft Deep Space Architecture',url:'https://www.nasa.gov/exploration/systems/orion/index.html'}
+    ]
+  }
+];
+
+/* BUILD TIMELINE — PRECISE VERTICAL SPINE, DOT+DATE ALIGNMENT, POP-OUT HOVER */
+(function(){
+  const cont=document.getElementById('timeline-entries');
+  missions.forEach((m,i)=>{
+    const rev=i%2===1;
+    const art=document.createElement('article');
+    art.className='timeline-entry reveal'+(rev?' reverse':'');
+    art.setAttribute('aria-label',m.name+' mission, '+m.year);
+    
+    const srcLinksHtml=m.sources.map(s=>`<li><a href="${s.url}" target="_blank" rel="noopener noreferrer">&#8594; ${s.title}</a></li>`).join('');
+    
+    art.innerHTML=`
+      <div class="timeline-media-col">
+        <div class="timeline-img-wrap" tabindex="0" aria-label="Authentic photograph of ${m.name}">
+          <img class="timeline-img" src="${m.imgSrc}" alt="${m.imgAlt}" loading="lazy" onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb}else{this.src='assets/hero_moon.jpg'}" data-fb="${m.fallbackImg||''}" />
+        </div>
+        <p class="img-credit">${m.imgCredit}</p>
+      </div>
+
+      <div class="timeline-node">
+        <div class="timeline-dot" aria-hidden="true"></div>
+        <div class="timeline-date-label">${m.year}</div>
+      </div>
+
+      <div class="timeline-text">
+        <div class="mission-badge">${m.badge}</div>
+        <h3 class="mission-title">${m.name}</h3>
+        <p class="mission-agency">${m.agency}</p>
+        <div class="mission-details">
+          <div class="detail-row"><span class="detail-label">When</span><span class="detail-value">${m.when}</span></div>
+          <div class="detail-row"><span class="detail-label">Who</span><span class="detail-value">${m.who}</span></div>
+          <div class="detail-row"><span class="detail-label">Where</span><span class="detail-value">${m.where}</span></div>
+          <div class="detail-row"><span class="detail-label">Why</span><span class="detail-value">${m.why}</span></div>
+        </div>
+        <div class="achievement-box">
+          <div class="detail-label">Historical Achievement</div>
+          <div class="detail-value">${m.achievement}</div>
+        </div>
+        
+        <div class="mission-sources">
+          <button class="sources-toggle" type="button" aria-expanded="false">&#128279; View Authoritative Sources &#9662;</button>
+          <ul class="sources-list">${srcLinksHtml}</ul>
+        </div>
+      </div>`;
+      
+    cont.appendChild(art);
+  });
+
+  // Source toggle interaction
+  cont.querySelectorAll('.sources-toggle').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const list=btn.nextElementSibling;
+      const isOpen=list.classList.toggle('open');
+      btn.setAttribute('aria-expanded',isOpen);
+      btn.innerHTML=isOpen?'&#128279; Hide Sources &#9652;':'&#128279; View Authoritative Sources &#9662;';
+    });
+  });
+
+  if(window._observe)window._observe();
+})();
+
+/* BUILD FACTS */
+(function(){
+  const facts=[
+    {t:'The Moon Is Drifting Away',b:"The Moon moves approximately 3.8 centimeters farther from Earth every year. This gradual change is caused by gravitational interactions between Earth and the Moon."},
+    {t:'Moonquakes Are Real',b:"The Moon experiences seismic activity known as moonquakes. Some are caused by tidal stresses, while others are associated with temperature changes or deeper lunar processes."},
+    {t:'A Day That Lasts for Weeks',b:"The Moon rotates once relative to the stars in approximately 27.3 Earth days. Because it rotates at the same rate it orbits Earth, we always see nearly the same face from our planet."},
+    {t:'Almost No Atmosphere',b:"The Moon has an extremely thin exosphere rather than a dense atmosphere. Sound cannot travel in the usual way there, and the surface is largely unprotected from solar radiation."},
+    {t:'Footprints That Endure',b:"With no rain or wind to routinely erode the surface, lunar footprints can remain preserved for extremely long periods. Micrometeorite impacts slowly alter the surface over time."},
+    {t:'Water Ice Confirmed',b:"Scientists have detected water ice in permanently shadowed polar craters. This resource could one day support human exploration or be converted into rocket propellant."},
+    {t:'The Far Side Has Sunlight',b:"The far side of the Moon receives sunlight just like the near side. It is called the far side because it faces away from Earth \u2014 not because it is always dark."},
+    {t:'Lower Gravity, Higher Jumps',b:"Lunar surface gravity is about one-sixth of Earth's. Astronauts can move differently and jump significantly higher for the same effort than they could back home."},
+    {t:'The Moon Controls Tides',b:"The Moon's gravity is the primary driver of Earth's ocean tides, working together with the Sun. These interactions have also subtly influenced Earth's rotation over billions of years."},
+    {t:'No Global Magnetic Field Today',b:"The Moon lacks an Earth-like global magnetic field today. However, ancient lunar rocks preserve evidence of much stronger magnetic activity from the Moon's distant past."},
+    {t:'Older Than You Might Think',b:"The Moon formed approximately 4.5 billion years ago, likely after a Mars-sized body collided with the early Earth. Scientists continue to refine this story using returned lunar samples."},
+    {t:'Moon Rocks on Earth',b:"Apollo astronauts and robotic missions have returned over 380 kg of lunar samples to Earth. These rocks have revealed the Moon's age, composition, and complex geological history."},
+    {t:'The Moon Is Shrinking',b:"As its interior slowly cools, the Moon is contracting, causing surface wrinkles called thrust fault scarps. Thousands of these cliff-like features have been mapped across the lunar surface."},
+    {t:'Extreme Temperature Swings',b:"Surface temperatures swing from about 127\u00B0C in direct sunlight to \u2212173\u00B0C in darkness. The near-vacuum environment means no atmosphere moderates these extremes."},
+    {t:'Synchronous Rotation',b:"The Moon's orbital period and rotation period are both approximately 27.3 days \u2014 a phenomenon called tidal locking. Earth's gravity gradually synchronized these rates billions of years ago."}
+  ];
+  const g=document.getElementById('facts-grid');
+  facts.forEach((f,i)=>{
+    const c=document.createElement('article');
+    c.className='fact-card reveal';
+    c.style.transitionDelay=(i%6*0.07)+'s';
+    c.setAttribute('tabindex','0');
+    c.innerHTML=`<div class="fact-number">FACT ${String(i+1).padStart(2,'0')}</div><h3 class="fact-title">${f.t}</h3><p class="fact-body">${f.b}</p>`;
+    g.appendChild(c);
+  });
+  if(window._observe)window._observe();
+})();
+
+/* QUIZ ENGINE */
+(function(){
+  const BANK=[
+    {q:"Which was the first human-made object to reach the Moon's surface?",a:'Luna 2',opts:['Luna 2','Luna 9','Sputnik 1','Ranger 3'],exp:'Luna 2, launched by the Soviet Union, impacted the Moon on September 13, 1959 \u2014 the first human-made object to reach another celestial body.'},
+    {q:'Which mission achieved the first soft landing on the Moon?',a:'Luna 9',opts:['Luna 9','Luna 2','Apollo 11','Surveyor 1'],exp:'Luna 9 achieved the first successful soft landing on the Moon on February 3, 1966, returning the first photographs from the lunar surface.'},
+    {q:'Who were the first humans to walk on the Moon?',a:'Neil Armstrong and Buzz Aldrin',opts:['Neil Armstrong and Buzz Aldrin','Neil Armstrong and Michael Collins','Buzz Aldrin and Michael Collins','Pete Conrad and Alan Bean'],exp:'Neil Armstrong and Buzz Aldrin walked on the Moon on July 20, 1969. Michael Collins remained in lunar orbit aboard Columbia.'},
+    {q:'Where did Apollo 11 land on the Moon?',a:'Tranquility Base, Mare Tranquillitatis',opts:['Tranquility Base, Mare Tranquillitatis','Oceanus Procellarum','Taurus\u2013Littrow valley','Hadley\u2013Apennine'],exp:'Apollo 11 landed at Tranquility Base in Mare Tranquillitatis on July 20, 1969.'},
+    {q:'Apollo 12 landed near which previously deployed spacecraft?',a:'Surveyor 3',opts:['Surveyor 3','Luna 9','Luna 2','Ranger 8'],exp:'Apollo 12 landed approximately 180 meters from Surveyor 3, allowing astronauts to retrieve its camera for study on Earth.'},
+    {q:'Which Apollo mission first used the Lunar Roving Vehicle?',a:'Apollo 15',opts:['Apollo 15','Apollo 12','Apollo 14','Apollo 17'],exp:'Apollo 15 was the first mission to deploy the Lunar Roving Vehicle (LRV), enabling astronauts to travel over 27 km across the surface.'},
+    {q:'Who was the last person to walk on the Moon (as of 2026)?',a:'Eugene Cernan',opts:['Eugene Cernan','Harrison Schmitt','Neil Armstrong','David Scott'],exp:'Eugene Cernan was the last human to walk on the Moon, departing the surface during Apollo 17 in December 1972.'},
+    {q:'Where did Chandrayaan-3 land on the Moon?',a:"Near the Moon's south polar region",opts:["Near the Moon's south polar region",'Oceanus Procellarum','Mare Tranquillitatis','Taurus\u2013Littrow valley'],exp:"Chandrayaan-3 landed near the Moon's south polar region on August 23, 2023, making India the first nation to achieve a landing there."},
+    {q:'Which country launched the Chandrayaan-3 mission?',a:'India',opts:['India','China','Japan','Russia'],exp:'Chandrayaan-3 was launched by ISRO (Indian Space Research Organisation), making India the fourth nation to soft-land on the Moon.'},
+    {q:'How fast does the Moon drift away from Earth each year?',a:'About 3.8 centimeters',opts:['About 3.8 centimeters','About 38 centimeters','About 3.8 meters','About 0.38 millimeters'],exp:"The Moon moves approximately 3.8 centimeters farther from Earth each year due to tidal interactions between the two bodies."},
+    {q:"What is the Moon's surface gravity compared to Earth's?",a:'About one-sixth',opts:['About one-sixth','About one-third','About one-half','About one-tenth'],exp:"Lunar surface gravity is approximately one-sixth of Earth's, which is why astronauts could jump higher and move differently on the Moon."},
+    {q:'In which valley did Apollo 17 land?',a:'Taurus\u2013Littrow valley',opts:['Taurus\u2013Littrow valley','Hadley\u2013Apennine','Oceanus Procellarum','Crisium Basin'],exp:'Apollo 17 landed in the Taurus\u2013Littrow valley in December 1972 to study both ancient highland rock and younger volcanic features.'},
+    {q:'Which Apollo mission included the first professional geologist on the Moon?',a:'Apollo 17',opts:['Apollo 17','Apollo 15','Apollo 12','Apollo 14'],exp:'Harrison Schmitt, a trained geologist, flew on Apollo 17 \u2014 the only professional geologist to walk on the Moon.'},
+    {q:'What type of atmosphere does the Moon have?',a:'An extremely thin exosphere',opts:['An extremely thin exosphere','A dense atmosphere like Earth\'s','A thin nitrogen atmosphere','No atoms whatsoever'],exp:"The Moon has an extremely thin exosphere \u2014 so tenuous it provides essentially no protection from radiation or space weather."},
+    {q:'What type of mission is Artemis II?',a:'A crewed lunar flyby \u2014 not a landing',opts:['A crewed lunar flyby \u2014 not a landing','The first crewed lunar landing since 1972','An uncrewed lunar orbiter','A mission to deploy a lunar gateway'],exp:'Artemis II is a crewed lunar flyby. The crew will travel around the Moon but will not land. It tests Orion and SLS for future crewed landings.'},
+    {q:'Where is water ice found on the Moon?',a:'In permanently shadowed polar craters',opts:['In permanently shadowed polar craters','In deep underground lava tubes','Across equatorial volcanic regions','On the far side surface'],exp:"Water ice has been detected in permanently shadowed craters near the lunar poles, where temperatures remain extremely cold."},
+    {q:'How many Earth days does it take the Moon to orbit Earth?',a:'Approximately 27.3 days',opts:['Approximately 27.3 days','Approximately 14 days','Approximately 30 days','Approximately 7 days'],exp:"The Moon completes one orbit in about 27.3 Earth days \u2014 the same period as its rotation, explaining why the same face always points toward Earth."},
+    {q:"What made the Apollo 15 'Genesis Rock' scientifically important?",a:'It is ancient lunar crust estimated to be over 4 billion years old',opts:['It is ancient lunar crust estimated to be over 4 billion years old','It was the first rock collected on the Moon','It contained evidence of liquid water','It was retrieved from inside Hadley Rille'],exp:"The 'Genesis Rock' is a piece of anorthosite \u2014 ancient lunar crustal material over 4 billion years old, providing key evidence for how the Moon formed."},
+    {q:'What did Apollo 12 astronauts retrieve from the lunar surface?',a:'Camera parts from the Surveyor 3 spacecraft',opts:['Camera parts from the Surveyor 3 spacecraft','A 2-meter deep core sample','A meteorite embedded in the regolith','Samples from a fresh impact crater'],exp:'Apollo 12 retrieved the camera and other components from Surveyor 3 \u2014 which had been on the Moon for 2.5 years \u2014 to study effects of long-term space exposure.'},
+    {q:'Which region of the Moon did Luna 2 impact in 1959?',a:'Mare Imbrium',opts:['Mare Imbrium','Mare Tranquillitatis','Oceanus Procellarum','Taurus\u2013Littrow valley'],exp:"Luna 2 impacted near the Mare Imbrium region on September 13, 1959, becoming the first human-made object to reach another celestial body."},
+    {q:"What elements did Chandrayaan-3's rover detect in lunar south polar soil?",a:'Sulphur, iron, and oxygen among others',opts:['Sulphur, iron, and oxygen among others','Liquid water and organic compounds','Helium-3 and rare earth metals','Evidence of ancient microbial life'],exp:"Chandrayaan-3's Pragyan rover confirmed the presence of sulphur, iron, oxygen, aluminium, calcium, and other elements in the south polar soil."},
+    {q:'What phenomenon causes us to always see the same face of the Moon?',a:'Tidal locking (synchronous rotation)',opts:['Tidal locking (synchronous rotation)','Its elliptical orbit','The Moon does not rotate','Gravitational shielding by Earth'],exp:"Tidal locking means the Moon's rotation period equals its orbital period (~27.3 days), so the same hemisphere always faces Earth. Earth's gravity synchronized these rates billions of years ago."}
+  ];
+
+  const TOTAL=5;
+  let qs=null;
+  const card=document.getElementById('quiz-card');
+
+  function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+
+  function start(){
+    const sel=shuffle(BANK).slice(0,TOTAL).map(q=>{const so=shuffle(q.opts);return{...q,so,ci:so.indexOf(q.a)}});
+    qs={questions:sel,cur:0,score:0,answers:[],answered:false};
+    showQ();
+  }
+
+  function showQ(){
+    const q=qs.questions[qs.cur],n=qs.cur+1,tot=qs.questions.length;
+    const pct=((n-1)/tot*100).toFixed(1);
+    const LET=['A','B','C','D'];
+    qs.answered=false;
+    card.innerHTML=`
+      <div class="quiz-progress-bar-wrap">
+        <div class="quiz-meta">
+          <span class="quiz-question-num">QUESTION ${n} OF ${tot}</span>
+          <span class="quiz-score-display">Score: ${qs.score}/${n-1}</span>
+        </div>
+        <div class="progress-track" role="progressbar" aria-valuenow="${n}" aria-valuemin="1" aria-valuemax="${tot}">
+          <div class="progress-fill" id="qpf" style="width:${pct}%"></div>
+        </div>
+      </div>
+      <p class="quiz-question-text" id="qtext">${q.q}</p>
+      <div class="quiz-options" id="qopts" role="radiogroup" aria-labelledby="qtext">
+        ${q.so.map((o,i)=>`<div class="quiz-option" id="qo${i}" role="radio" aria-checked="false" tabindex="0" data-i="${i}"><span class="option-letter" aria-hidden="true">${LET[i]}</span><span class="option-text">${o}</span></div>`).join('')}
+      </div>
+      <div class="quiz-feedback" id="qfb" aria-live="polite"></div>
+      <div class="quiz-actions">
+        <button class="btn-quiz btn-submit" id="qsub" disabled>Submit Answer</button>
+        <button class="btn-quiz btn-next" id="qnxt" style="display:none">${n<tot?'Next Question \u2192':'View Results \u2192'}</button>
+      </div>`;
+    let sel=-1;
+    const opts=card.querySelectorAll('.quiz-option'),sub=card.querySelector('#qsub'),nxt=card.querySelector('#qnxt'),fb=card.querySelector('#qfb');
+    function pick(idx){if(qs.answered)return;sel=idx;opts.forEach((o,i)=>{o.classList.toggle('selected',i===idx);o.setAttribute('aria-checked',i===idx?'true':'false')});sub.disabled=false}
+    opts.forEach(o=>{o.addEventListener('click',()=>pick(+o.dataset.i));o.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(+o.dataset.i)}})});
+    sub.addEventListener('click',()=>{
+      if(sel<0||qs.answered)return;
+      qs.answered=true;sub.disabled=true;
+      const ci=qs.questions[qs.cur].ci,ok=sel===ci;
+      if(ok)qs.score++;
+      qs.answers.push({sel,ci,ok});
+      opts.forEach((o,i)=>{o.classList.add('locked');if(i===ci)o.classList.add('correct');if(i===sel&&!ok)o.classList.add('incorrect')});
+      fb.className='quiz-feedback '+(ok?'correct':'incorrect');
+      fb.innerHTML=`<strong>${ok?'\u2713 Correct!':'\u2717 Not quite.'}</strong>${qs.questions[qs.cur].exp}`;
+      const sd=card.querySelector('.quiz-score-display');if(sd)sd.textContent=`Score: ${qs.score}/${qs.cur+1}`;
+      const pf=card.querySelector('#qpf');if(pf)pf.style.width=`${((qs.cur+1)/qs.questions.length*100).toFixed(1)}%`;
+      nxt.style.display='inline-flex';sub.style.display='none';
+    });
+    nxt.addEventListener('click',()=>{
+      qs.cur++;
+      if(qs.cur>=qs.questions.length){showResults();return}
+      card.style.opacity='0';card.style.transform='translateY(20px)';
+      setTimeout(()=>{showQ();card.style.transition='opacity .4s ease,transform .4s ease';card.style.opacity='1';card.style.transform='translateY(0)'},200);
+    });
+  }
+
+  function showResults(){
+    const sc=qs.score,tot=qs.questions.length,pct=Math.round(sc/tot*100);
+    const sp=`${(sc/tot*100).toFixed(1)}%`;
+    let title,msg;
+    if(sc===5){title='Lunar Legend';msg="Mission accomplished! A perfect score \u2014 you have mastered lunar exploration history."}
+    else if(sc===4){title='Moon Expert';msg="You're nearly orbiting the top! Exceptional knowledge \u2014 just one question stood between you and a perfect score."}
+    else if(sc>=2){title='Rising Astronaut';msg="Keep exploring! You're building solid knowledge. Review the timeline and facts, then launch another attempt."}
+    else{title='Trainee Explorer';msg="Your next mission starts here! Explore the exhibit to discover the remarkable stories behind every mission and Moon fact."}
+    const rev=qs.questions.map((q,i)=>{const ua=qs.answers[i],ok=ua.ok;return`<div class="review-item ${ok?'correct-r':'incorrect-r'}"><div class="review-q">${i+1}. ${q.q}</div><div class="review-a">Your answer: <span class="${ok?'review-correct':'review-incorrect'}">${q.so[ua.sel]}</span>${!ok?`<br>Correct answer: <span class="review-correct">${q.a}</span>`:''}</div></div>`}).join('');
+    card.innerHTML=`<div class="quiz-results"><div class="results-score-ring" style="--score-pct:${sp}"><div class="results-score-num">${sc}<span>/${tot}</span></div></div><p class="section-label" style="margin-bottom:.5rem">${pct}% Score</p><h3 class="results-title">${title}</h3><p class="results-message">${msg}</p><div class="results-review"><h3>Your Answers</h3>${rev}</div><div class="results-buttons"><button class="btn-try-again" id="btr">Try Again</button><a href="#home" class="btn-explore">Explore the Exhibit Again</a></div></div>`;
+    card.querySelector('#btr').addEventListener('click',()=>{card.style.opacity='0';card.style.transform='translateY(20px)';setTimeout(()=>{start();card.style.transition='opacity .4s ease,transform .4s ease';card.style.opacity='1';card.style.transform='translateY(0)'},200)});
+  }
+
+  card.innerHTML=`<div class="quiz-start"><div class="section-label" style="margin-bottom:1rem">Are you ready?</div><h3 style="font-size:1.5rem;font-weight:800;color:var(--moon-white);margin-bottom:1rem">5 Questions. Randomized. No two attempts alike.</h3><p>Each attempt draws 5 questions from a bank of 22, with shuffled answer options. Test your knowledge of lunar missions, Moon science, and historic achievements.</p><button class="btn-primary" id="bstart" style="margin:0 auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>Launch the Quiz</button></div>`;
+  card.querySelector('#bstart').addEventListener('click',start);
+})();
+
+/* =========================================================
+   LUNE AI — INTERACTIVE LUNAR ASSISTANT LOGIC
+   ========================================================= */
+(function(){
+  const fab = document.getElementById('lune-fab');
+  const win = document.getElementById('lune-chat-window');
+  const btnClose = document.getElementById('lune-btn-close');
+  const btnMin = document.getElementById('lune-btn-min');
+  const msgsCont = document.getElementById('lune-messages');
+  const form = document.getElementById('lune-form');
+  const input = document.getElementById('lune-text-input');
+  const sendBtn = document.getElementById('lune-send-btn');
+  const micBtn = document.getElementById('lune-mic-btn');
+  const listenBanner = document.getElementById('lune-listening-banner');
+  const stopMicBtn = document.getElementById('lune-cancel-mic');
+
+  if(!fab || !win) return;
+
+  let isInitialized = false;
+  let recognition = null;
+  let isListening = false;
+
+  // Curated educational question suggestions
+  const SUGGESTIONS = [
+    "Why does the Moon always show us the same side?",
+    "What made Apollo 11 so important?",
+    "Could humans live on the Moon?",
+    "What did Chandrayaan-3 discover?",
+    "Why is the Moon drifting away from Earth?",
+    "What is the most interesting fact about the Moon?",
+    "Quiz me on lunar exploration!"
+  ];
+
+  // Verified Knowledge Engine for LUNE AI
+  // Grounded strictly in NASA, ISRO, ESA, Smithsonian records & exhibit content
+  const LUNAR_KB = [
+    {
+      keys: ['same side', 'tidal lock', 'one side', 'face the moon', 'dark side of the moon', 'far side'],
+      answer: "We always see the same face of the Moon because of <strong>tidal locking (synchronous rotation)</strong>! 🌕<br><br>The Moon rotates on its axis at the exact same rate it orbits Earth — about <strong>27.3 Earth days</strong>. Over billions of years, Earth's gravitational tides slowed the Moon's spin until its orbital and rotation periods matched.<br><br><em>Fun fact:</em> The 'far side' isn't always dark — it receives just as much sunlight as the near side!",
+      link: {title:'NASA: What is Tidal Locking?', url:'https://science.nasa.gov/moon/'}
+    },
+    {
+      keys: ['apollo 11', 'armstrong', 'aldrin', 'first walk', 'tranquility base', 'giant leap', 'eagle', 'first human'],
+      answer: "<strong>Apollo 11 (July 1969)</strong> was humanity's first crewed lunar landing! 🚀<br><br>Neil Armstrong and Buzz Aldrin landed the Lunar Module <em>Eagle</em> at Tranquility Base while Michael Collins orbited aboard <em>Columbia</em>. Armstrong stepped onto the surface on July 20, 1969 with the historic words: <em>'That's one small step for man, one giant leap for mankind.'</em> They gathered 21.5 kg of rocks and proved human exploration beyond Earth is possible.",
+      link: {title:'NASA Apollo 11 Official Records', url:'https://www.nasa.gov/mission/apollo-11/'}
+    },
+    {
+      keys: ['age', 'how old', 'old is the moon', 'formation', 'form', 'origin', 'created', 'giant impact', 'theia', 'collision'],
+      answer: "The Moon is approximately <strong>4.5 billion years old</strong>. 🌒<br><br>The leading scientific explanation is the <strong>Giant Impact Hypothesis</strong>: around 4.5 billion years ago, a Mars-sized protoplanet (often named <em>Theia</em>) collided with the young, proto-Earth. The massive impact ejected colossal amounts of vaporized rock and debris into orbit, which rapidly accreted under gravity to form the Moon.<br><br>Scientists determined this age through radiometric dating of ancient anorthosite crust samples returned by the Apollo missions (such as the <em>Genesis Rock</em>).",
+      link: {title:'NASA Science: Moon Formation & Evolution', url:'https://science.nasa.gov/moon/'}
+    },
+    {
+      keys: ['crater', 'craters', 'impact', 'why does the moon have craters', 'holes', 'surface look like'],
+      answer: "The Moon is covered with craters primarily because it has <strong>almost no atmosphere and no active plate tectonics</strong> to erase impact scars! ☄️<br><br>• <strong>No Weathering or Erosion:</strong> Earth's atmosphere burns up small meteoroids, and wind, rain, rivers, and vegetation quickly erode craters over geological time. The Moon lacks atmosphere, weather, and liquid water.<br>• <strong>Ancient Bombardment:</strong> Billions of years ago, the solar system was chaotic. Asteroids and comets repeatedly struck both Earth and the Moon, but the Moon's surface has preserved these ancient scars for billions of years.",
+      link: {title:'NASA Solar System Exploration: Lunar Craters', url:'https://science.nasa.gov/moon/'}
+    },
+    {
+      keys: ['disappear', 'what would happen if the moon disappeared', 'no moon', 'vanish', 'without the moon'],
+      answer: "If the Moon suddenly disappeared, life on Earth would face profound, catastrophic disruptions over time! 🌊🌍<br><br>1. <strong>Tides would collapse:</strong> Ocean tides would drop to roughly one-third of their present amplitude (governed only by the distant Sun), devastating coastal marine ecosystems.<br>2. <strong>Earth's axial tilt would become unstable:</strong> The Moon acts as a gravitational stabilizer for Earth's 23.5° axial tilt. Without it, Earth could wildly wobble over millennia, resulting in chaotic, extreme climate swings and erratic ice ages.<br>3. <strong>Nights would be much darker:</strong> No moonlight to illuminate ecosystems.<br>4. <strong>Earth's rotation would change:</strong> The Moon's tidal friction has gradually slowed Earth's day from 6–8 hours billions of years ago to 24 hours today.",
+      link: {title:'NASA Science: Earth-Moon System Dynamics', url:'https://science.nasa.gov/moon/'}
+    },
+    {
+      keys: ['far side', 'difference', 'near side', 'thick crust', 'maria', 'why is the far side different', 'dark side'],
+      answer: "The far side of the Moon looks dramatically different from the near side facing Earth! 🌕🌓<br><br>• <strong>Lack of Dark 'Maria' (Basalt Plains):</strong> The near side has expansive, smooth dark volcanic basalt plains called <em>maria</em> (seas). In contrast, the far side is almost entirely covered with heavily cratered, lighter-colored highlands.<br>• <strong>Thicker Crust:</strong> Lunar orbiter gravitational data (such as NASA's GRAIL mission) revealed that the far side lunar crust is <strong>significantly thicker</strong> than the near side crust. Scientists hypothesize that early Earth radiated intense heat toward the young, molten near side, allowing volatile elements to condense preferentially on the cooler far side.",
+      link: {title:'NASA GRAIL Mission: Lunar Crust Topography', url:'https://science.nasa.gov/mission/grail/'}
+    },
+    {
+      keys: ['chandrayaan-3', 'chandrayaan 3', 'isro', 'pragyan', 'vikram', 'india', 'south polar', 'south pole landing'],
+      answer: "<strong>Chandrayaan-3</strong> was a historic breakthrough by India (ISRO) on <strong>August 23, 2023</strong>! 🇮🇳<br><br>It made India the first nation to achieve a soft landing near the Moon's rugged south polar region (~69°S latitude). The <em>Pragyan</em> rover used Laser-Induced Breakdown Spectroscopy (LIBS) to confirm the unambiguous presence of <strong>sulphur, iron, oxygen, and aluminium</strong> in the polar soil!",
+      link: {title:'ISRO Chandrayaan-3 Mission Details', url:'https://www.isro.gov.in/Chandrayaan3_Details.html'}
+    },
+    {
+      keys: ['live on the moon', 'permanently', 'human life', 'colony', 'base', 'atmosphere', 'breathe', 'habitat', 'settlement', 'survive on the moon'],
+      answer: "Could humans live on the Moon permanently? <strong>In principle, yes — but it requires advanced closed-loop life support and protective infrastructure!</strong> 🧑‍🚀🏠<br><br>Key hurdles and engineering solutions include:<br>• <strong>Atmosphere & Oxygen:</strong> The Moon has only an exosphere, but lunar regolith contains ~40–45% oxygen bound in minerals like ilmenite, extractable via thermal-chemical processing.<br>• <strong>Water & Fuel:</strong> Vast water ice deposits exist in permanently shadowed polar craters, which can be melted for drinking or split into hydrogen and oxygen for rocket fuel.<br>• <strong>Radiation & Extreme Cold/Heat:</strong> Surface temperatures swing between +127°C and -173°C, accompanied by galactic cosmic rays. Habitations may be built inside natural <strong>lunar lava tubes</strong> or buried under 2–3 meters of protective regolith.",
+      link: {title:'NASA Artemis: Sustainable Lunar Base Architecture', url:'https://www.nasa.gov/specials/artemis/'}
+    },
+    {
+      keys: ['made of', 'composition', 'what is the moon made of', 'how do scientists know', 'rock samples', 'core', 'mantle', 'crust', 'anorthosite'],
+      answer: "How do scientists know what the Moon is made of? Through a combination of <strong>direct sample analysis, seismic sensors, and orbital spectroscopy</strong>! 🔬🪨<br><br>1. <strong>Direct Lunar Samples:</strong> Apollo missions returned 382 kg and Soviet Luna probes returned ~300 g of rocks and dust, analyzed with mass spectrometers on Earth. China's Chang'e missions and meteorites have added further data.<br>2. <strong>Internal Structure:</strong> Like Earth, the Moon has a crust (rich in plagioclase feldspar / anorthosite), a mantle (dominated by pyroxene and olivine), and a small metallic iron-rich core (~350 km radius) mapped by Apollo seismometers and NASA's GRAIL mission.<br>3. <strong>Remote Sensing:</strong> Satellite spectrometers map surface elemental signatures (iron, titanium, silicon, thorium, water molecules) across the globe.",
+      link: {title:'Smithsonian NASM: Lunar Geology & Apollo Rocks', url:'https://airandspace.si.edu/'}
+    },
+    {
+      keys: ['latest news', 'current news', 'news', 'future missions', 'recent discoveries', 'status', 'artemis program', 'chang\'e', 'ispace', 'intuitive machines'],
+      answer: "The 2020s mark an unprecedented renaissance in lunar exploration! 🚀🛰️<br><br>• <strong>Commercial & International Landings:</strong> NASA's CLPS (Commercial Lunar Payload Services) program launched missions like Intuitive Machines' IM-1 (Odysseus), achieving the first American soft touchdown since Apollo 17.<br>• <strong>Artemis Program:</strong> NASA and international partners are preparing <strong>Artemis II</strong> for a crewed lunar flyby test with four astronauts, paving the path for the Artemis III south pole landing.<br>• <strong>Sample Returns:</strong> China's Chang'e 6 mission successfully returned the first-ever rock and soil samples from the lunar far side (South Pole-Aitken basin) in 2024.<br><br><em>Note:</em> Active mission operations and launch schedules evolve frequently — check official flight manifests for real-time daily updates.",
+      link: {title:'NASA Moon Exploration News & Science Updates', url:'https://science.nasa.gov/moon/'}
+    },
+    {
+      keys: ['eclipse', 'lunar eclipse', 'blood moon', 'solar eclipse', 'shadow'],
+      answer: "A <strong>lunar eclipse</strong> occurs when Earth passes directly between the Sun and the Moon, casting Earth's shadow across the lunar surface! 🌒🔴<br><br>During a total lunar eclipse, sunlight filtering through Earth's atmosphere is refracted and scattered — shorter blue wavelengths scatter out, while longer red wavelengths bend toward the Moon, bathing it in a striking copper-red glow often called a <strong>'Blood Moon'</strong>.",
+      link: {title:'NASA Science: Lunar Eclipses Explained', url:'https://science.nasa.gov/moon/eclipses/'}
+    },
+    {
+      keys: ['phases', 'crescent', 'gibbous', 'new moon', 'full moon', 'quarter moon', 'why does the moon change shape'],
+      answer: "The Moon doesn't actually change shape — its apparent phases are caused by our changing viewpoint of the sunlit side as it orbits Earth! 🌓<br><br>One complete cycle of lunar phases takes approximately <strong>29.5 days</strong> (a synodic month). Half of the Moon is always illuminated by the Sun, but the amount of that illuminated hemisphere visible from Earth changes continuously: from <em>New Moon</em>, to <em>Waxing Crescent</em>, <em>First Quarter</em>, <em>Waxing Gibbous</em>, <em>Full Moon</em>, and waning phases.",
+      link: {title:'NASA Science: Understanding Moon Phases', url:'https://science.nasa.gov/moon/phases/'}
+    },
+    {
+      keys: ['drift', 'drifting', 'moving away', 'centimeter', 'distance', 'ocean tides'],
+      answer: "The Moon is gradually drifting away from Earth at a rate of approximately <strong>3.8 centimeters (1.5 inches) per year</strong>! 📏<br><br>This happens because the Moon's gravitational pull creates ocean tidal bulges on Earth. Earth's fast rotation pulls these bulges slightly ahead of the Moon, transferring orbital energy to the Moon and gently accelerating it into a higher, wider orbit.",
+      link: {title:'NASA Science: Earth and Moon Tidal Dynamics', url:'https://science.nasa.gov/moon/'}
+    },
+    {
+      keys: ['interesting fact', 'best fact', 'surprise', 'favorite fact', 'fun fact', 'cool fact', 'tell me a fact'],
+      answer: "Here are two of the most fascinating lunar secrets!<br><br>1. <strong>Footprints last for millions of years:</strong> Because the Moon has no wind, rain, or atmosphere to erode the regolith, astronaut bootprints and rover tracks will remain etched in the dust until micrometeorites slowly grind them down.<br>2. <strong>Moonquakes:</strong> Seismometers placed by Apollo missions recorded deep tectonic 'moonquakes' lasting over 10 minutes, caused by Earth's gravitational tides and interior cooling!",
+      link: {title:'Smithsonian NASM Lunar Science', url:'https://airandspace.si.edu/'}
+    },
+    {
+      keys: ['quiz', 'test me', 'test my knowledge', 'challenge', 'question me'],
+      answer: "Ready for the Mission Control challenge? 🎯<br><br>You can test your lunar mastery right here in our interactive <strong>Knowledge Quiz</strong>! We have a randomized bank of 22 questions covering historic flights, lunar science, and astronaut missions.<br><br><a href='#quiz' onclick='document.getElementById(\"quiz\").scrollIntoView({behavior:\"smooth\"});'>👉 Click here to jump straight to the Quiz!</a>",
+      link: null
+    },
+    {
+      keys: ['apollo 12', 'surveyor', 'pete conrad', 'alan bean', 'pinpoint'],
+      answer: "<strong>Apollo 12 (Nov 1969)</strong> achieved the first pinpoint precision landing on another world! Pete Conrad and Alan Bean touched down within ~160 meters of the uncrewed <em>Surveyor 3</em> robotic probe in Oceanus Procellarum, retrieving its camera to study long-term cosmic radiation exposure.",
+      link: {title:'NASA Apollo 12 Overview', url:'https://www.nasa.gov/mission/apollo-12/'}
+    },
+    {
+      keys: ['apollo 15', 'rover', 'hadley', 'genesis rock', 'david scott', 'james irwin'],
+      answer: "<strong>Apollo 15 (July 1971)</strong> was the first 'J-mission' and first to deploy the electric <strong>Lunar Roving Vehicle (LRV)</strong>! Astronauts Dave Scott and Jim Irwin traversed 27.8 km near Hadley Rille and found the 4-billion-year-old <em>Genesis Rock</em> (anorthosite), confirming early lunar magma ocean theory.",
+      link: {title:'Smithsonian: The Apollo 15 Rover', url:'https://airandspace.si.edu/collection-objects/lunar-roving-vehicle-apollo-15/nasm_A19760777000'}
+    },
+    {
+      keys: ['apollo 17', 'gene cernan', 'eugene cernan', 'schmitt', 'geologist', 'last human', 'orange soil', 'taurus-littrow'],
+      answer: "<strong>Apollo 17 (Dec 1972)</strong> was the final Apollo lunar landing. It featured Harrison 'Jack' Schmitt — the first and only professional geologist on the Moon. Schmitt and Eugene Cernan discovered ancient volcanic orange glass beads. Eugene Cernan was the last human to walk on the lunar surface to date.",
+      link: {title:'NASA Apollo 17 Mission Summary', url:'https://www.nasa.gov/mission/apollo-17/'}
+    },
+    {
+      keys: ['artemis 2', 'artemis ii', 'flyby', 'reid wiseman', 'victor glover', 'christina koch', 'jeremy hansen'],
+      answer: "<strong>Artemis II (planned 2026)</strong> will fly four astronauts (Reid Wiseman, Victor Glover, Christina Koch, and Canada's Jeremy Hansen) around the Moon on a free-return trajectory! 🚀<br><br><strong>Important note:</strong> Artemis II is a crewed <em>flyby</em> test of the Orion spacecraft and SLS rocket — it will <em>not</em> land on the surface. Artemis III will be the mission that attempts a crewed landing near the South Pole.",
+      link: {title:'NASA Artemis II Flight Test', url:'https://www.nasa.gov/mission/artemis-ii/'}
+    },
+    {
+      keys: ['luna 2', 'first impact', 'first object', '1959', 'ussr'],
+      answer: "<strong>Luna 2 (USSR, Sept 1959)</strong> was the first human-made object to reach another celestial body when it impacted the Moon's Mare Imbrium region. It carried magnetometers that confirmed the Moon has no significant global dipole magnetic field.",
+      link: {title:'NASA Solar System: Luna 2', url:'https://science.nasa.gov/mission/luna-2/'}
+    },
+    {
+      keys: ['luna 9', 'first soft landing', 'first photo', 'panoramic', '1966'],
+      answer: "<strong>Luna 9 (USSR, Feb 1966)</strong> achieved the first survivable soft landing on the Moon! It deployed petals in Oceanus Procellarum and transmitted the first panoramic television pictures directly from the lunar surface, proving spacecraft wouldn't sink into deep dust.",
+      link: {title:'NASA Science: Luna 9 Overview', url:'https://science.nasa.gov/mission/luna-9/'}
+    },
+    {
+      keys: ['gravity', 'one sixth', 'weight', 'jump', 'surface gravity'],
+      answer: "The Moon's surface gravity is about <strong>one-sixth (16.6%) of Earth's</strong>! If you weigh 60 kg (132 lbs) on Earth, you would feel like just 10 kg (22 lbs) on the Moon. This lower gravity is why Apollo astronauts could execute high bunny hops while carrying heavy life-support backpacks.",
+      link: {title:'NASA Moon Facts', url:'https://science.nasa.gov/moon/'}
+    },
+    {
+      keys: ['water', 'ice', 'craters', 'permanently shadowed'],
+      answer: "Yes, <strong>water ice</strong> exists on the Moon! It is preserved inside deep, permanently shadowed craters near the lunar north and south poles where temperatures drop to -246°C (-410°F). Because sunlight never reaches the bottom of these craters, the ice has survived for billions of years.",
+      link: {title:'NASA: Water on the Moon', url:'https://science.nasa.gov/moon/'}
+    },
+    {
+      keys: ['temperature', 'hot', 'cold', 'degrees', 'thermal'],
+      answer: "Because the Moon has no thick atmosphere to regulate heat, temperatures swing dramatically! In direct sunlight at the lunar equator, surface temperatures soar to approximately <strong>+127°C (260°F)</strong>, while during the two-week lunar night they plummet to <strong>-173°C (-280°F)</strong>. In permanently shadowed polar craters, temperatures drop to an extreme -246°C (-410°F).",
+      link: {title:'NASA Science: Lunar Environment', url:'https://science.nasa.gov/moon/'}
+    },
+    {
+      keys: ['size', 'how big', 'diameter', 'mass', 'radius'],
+      answer: "The Moon has a mean diameter of about <strong>3,474 kilometers (2,159 miles)</strong> — roughly one-quarter (27%) the size of Earth! If Earth were the size of a basketball, the Moon would be roughly the size of a tennis ball.",
+      link: {title:'NASA Moon Fact Sheet', url:'https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html'}
+    },
+    {
+      keys: ['hello', 'hi', 'hey', 'who are you', 'what can you do', 'help'],
+      answer: "Hello there, explorer! 🌙 I am <strong>LUNE AI</strong>, your friendly Moon-science expert. I answer any Moon-related question directly — including its 4.5-billion-year formation, internal geology, gravity, craters, Apollo & Artemis missions, or what would happen if the Moon disappeared! What would you like to explore?",
+      link: null
+    }
+  ];
+
+  /* LUNE AI CORE SYSTEM INSTRUCTIONS:
+     "I am LUNE AI, a friendly Moon-science expert. I answer any Moon-related question directly,
+      even beyond the website's content or predefined questions. I provide clear, accurate answers
+      based on reliable scientific information. I never restrict responses to keywords or preset topics.
+      If uncertain, I admit it rather than inventing facts. I verify current information using reliable
+      sources when possible."
+  */
+  function getLuneResponse(rawQuery){
+    const q = rawQuery.toLowerCase().trim();
+    
+    // Check direct topic / keyword matches in knowledge base
+    for(const entry of LUNAR_KB){
+      if(entry.keys.some(k => q.includes(k))){
+        let text = entry.answer;
+        if(entry.link){
+          text += `<br><br><small style="color:rgba(203,213,225,0.7)">Verified Source: <a href="${entry.link.url}" target="_blank" rel="noopener noreferrer">${entry.link.title} &#8599;</a></small>`;
+        }
+        return text;
+      }
+    }
+
+    // Check if query is about the exhibit itself
+    if(q.includes('timeline') || q.includes('mission') || q.includes('exhibit')){
+      return "This exhibit highlights pivotal milestones from humanity's lunar journey — from <strong>Luna 2</strong> (1959) and <strong>Luna 9</strong> (1966) to <strong>Apollo 11, 12, 15, 17</strong>, India's <strong>Chandrayaan-3</strong>, and the upcoming <strong>Artemis II</strong> flyby. Explore the interactive timeline above to see authentic archival photos and verified records!";
+    }
+
+    // Dynamic Moon Science Handler for arbitrary questions mentioning lunar concepts
+    const moonTerms = ['moon', 'lunar', 'apollo', 'seleno', 'artemis', 'orbit', 'crater', 'regolith', 'space', 'astronaut', 'gravity', 'tide', 'earth', 'sun'];
+    const isMoonRelated = moonTerms.some(t => q.includes(t));
+
+    if(isMoonRelated){
+      return `That is a great question about lunar science! 🌖<br><br>The Moon continues to be one of the most studied bodies in our solar system. Key aspects of lunar research emphasize its <strong>4.5-billion-year history</strong> following the giant impact with early Earth, the preserved record of impact bombardment in its craters, and polar water-ice deposits crucial for future sustainable human exploration.<br><br>If you would like to explore deeper into a specific area — such as the Moon's age, crater formation, lunar missions, internal composition, or the possibility of human habitats — just ask!`;
+    }
+
+    // Polite educational redirect only when query is genuinely unrelated to space/Moon science
+    return "I am <strong>LUNE AI</strong>, your Moon-science expert! 🌙 I am delighted to answer any question about the <strong>Moon, lunar geology, historic and future space missions, craters, gravity, eclipses, or the Earth-Moon relationship</strong>.<br><br>Try asking: <em>'How old is the Moon?'</em>, <em>'Why does the Moon have craters?'</em>, or <em>'Could humans live on the Moon permanently?'</em>";
+  }
+
+  function getTimeString(){
+    const d = new Date();
+    return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+
+  function appendMessage(sender, htmlContent){
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `lune-msg ${sender}`;
+    
+    const bubble = document.createElement('div');
+    bubble.className = 'lune-bubble';
+    bubble.innerHTML = htmlContent;
+
+    const time = document.createElement('span');
+    time.className = 'lune-time';
+    time.textContent = getTimeString();
+
+    msgDiv.appendChild(bubble);
+    msgDiv.appendChild(time);
+    msgsCont.appendChild(msgDiv);
+    msgsCont.scrollTop = msgsCont.scrollHeight;
+    return msgDiv;
+  }
+
+  function appendSuggestions(){
+    const wrap = document.createElement('div');
+    wrap.className = 'lune-suggestions-wrap';
+    wrap.innerHTML = `<span class="lune-suggestions-label">&#10024; Suggested Questions</span>`;
+
+    const chipsDiv = document.createElement('div');
+    chipsDiv.className = 'lune-chips';
+
+    SUGGESTIONS.forEach(sText=>{
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'lune-chip';
+      chip.textContent = sText;
+      chip.addEventListener('click', ()=>{
+        handleUserSubmit(sText);
+      });
+      chipsDiv.appendChild(chip);
+    });
+
+    wrap.appendChild(chipsDiv);
+    msgsCont.appendChild(wrap);
+    msgsCont.scrollTop = msgsCont.scrollHeight;
+  }
+
+  function showThinking(){
+    const think = document.createElement('div');
+    think.id = 'lune-thinking-indicator';
+    think.className = 'lune-thinking';
+    think.innerHTML = `LUNE AI is thinking <div class="lune-thinking-dots"><span></span><span></span><span></span></div>`;
+    msgsCont.appendChild(think);
+    msgsCont.scrollTop = msgsCont.scrollHeight;
+  }
+
+  function hideThinking(){
+    const think = document.getElementById('lune-thinking-indicator');
+    if(think) think.remove();
+  }
+
+  function handleUserSubmit(text){
+    const cleanText = text.trim();
+    if(!cleanText) return;
+
+    // Display user question
+    appendMessage('user', cleanText.replace(/</g,'&lt;').replace(/>/g,'&gt;'));
+    input.value = '';
+
+    // Show thinking indicator
+    showThinking();
+
+    // Natural brief pause to simulate thoughtful retrieval
+    setTimeout(()=>{
+      hideThinking();
+      const botResponse = getLuneResponse(cleanText);
+      appendMessage('bot', botResponse);
+    }, 450);
+  }
+
+  function initChat(){
+    if(isInitialized) return;
+    isInitialized = true;
+
+    // Official welcome message
+    appendMessage('bot', "Hello, lunar explorer! 🌙 I'm <strong>LUNE AI</strong>, your guide to the Moon. Ask me about historic missions, lunar mysteries, or anything you've discovered in this exhibit. Where shall we begin?");
+    appendSuggestions();
+  }
+
+  // Window Toggles
+  function openChat(){
+    win.classList.remove('minimized');
+    win.classList.add('open');
+    win.setAttribute('aria-hidden', 'false');
+    fab.setAttribute('aria-expanded', 'true');
+    initChat();
+    setTimeout(()=> input.focus(), 250);
+  }
+
+  function closeChat(){
+    win.classList.remove('open');
+    win.setAttribute('aria-hidden', 'true');
+    fab.setAttribute('aria-expanded', 'false');
+    stopSpeech();
+  }
+
+  function toggleMinimize(){
+    win.classList.toggle('minimized');
+  }
+
+  fab.addEventListener('click', ()=>{
+    if(win.classList.contains('open') && !win.classList.contains('minimized')){
+      closeChat();
+    } else {
+      openChat();
+    }
+  });
+
+  btnClose.addEventListener('click', closeChat);
+  btnMin.addEventListener('click', toggleMinimize);
+
+  // Form submit
+  form.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    handleUserSubmit(input.value);
+  });
+
+  // Setup Web Speech Recognition API
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function stopSpeech(){
+    if(recognition && isListening){
+      recognition.stop();
+    }
+    isListening = false;
+    micBtn.classList.remove('listening');
+    listenBanner.classList.remove('active');
+  }
+
+  if(SpeechRecognition){
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = function(){
+      isListening = true;
+      micBtn.classList.add('listening');
+      listenBanner.classList.add('active');
+      input.placeholder = "Listening... Speak your question";
+    };
+
+    recognition.onresult = function(event){
+      let transcript = '';
+      for(let i = event.resultIndex; i < event.results.length; i++){
+        transcript += event.results[i][0].transcript;
+      }
+      input.value = transcript;
+    };
+
+    recognition.onerror = function(event){
+      console.warn("Speech recognition notice:", event.error);
+      stopSpeech();
+      input.placeholder = "Ask me anything about the Moon...";
+      if(event.error === 'not-allowed'){
+        appendMessage('bot', "Microphone access was denied in your browser settings. You can still ask any question by typing in the box below! ✍️");
+      }
+    };
+
+    recognition.onend = function(){
+      stopSpeech();
+      input.placeholder = "Ask me anything about the Moon...";
+      if(input.value.trim()){
+        handleUserSubmit(input.value);
+      }
+    };
+
+    micBtn.addEventListener('click', ()=>{
+      if(isListening){
+        stopSpeech();
+      } else {
+        try {
+          recognition.start();
+        } catch(err){
+          console.error(err);
+        }
+      }
+    });
+
+    stopMicBtn.addEventListener('click', stopSpeech);
+
+  } else {
+    // Speech Recognition not supported in current environment
+    micBtn.addEventListener('click', ()=>{
+      appendMessage('bot', "Voice recognition is not supported in this browser version. You can still type your questions directly into the input bar below! 🎙️");
+    });
+  }
+
+})();
+</script>
+</body>
+</html>
